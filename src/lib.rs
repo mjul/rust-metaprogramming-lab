@@ -28,7 +28,7 @@ trait Named {
     fn get_name(&self) -> String;
 }
 
-/// Documented represents somehting with documentation, a docstring.
+/// Documented represents something with documentation, a docstring.
 trait Documented {
     fn get_docstring(&self) -> DocString;
 }
@@ -39,17 +39,17 @@ trait Declaration: Named + Documented {}
 struct FieldDeclaration {
     name: String,
     field_type: FieldType,
-    docstring: DocString,
+    doc_str: DocString,
     sort_index: usize,
 }
 
 impl FieldDeclaration {
-    fn new(name: String, tp: FieldType, docstr: DocString, sort_index: usize) -> Self {
+    fn new(name: String, field_type: FieldType, doc_str: DocString, sort_index: usize) -> Self {
         FieldDeclaration {
-            name: name,
-            field_type: tp,
-            docstring: docstr,
-            sort_index: sort_index,
+            name,
+            field_type,
+            doc_str,
+            sort_index,
         }
     }
 }
@@ -62,7 +62,7 @@ impl Named for FieldDeclaration {
 
 impl Documented for FieldDeclaration {
     fn get_docstring(&self) -> DocString {
-        self.docstring.clone()
+        self.doc_string.clone()
     }
 }
 
@@ -71,17 +71,17 @@ impl Declaration for FieldDeclaration {}
 /// Declaration for an event
 struct EventDeclaration {
     name: String,
-    docstring: DocString,
+    doc_str: DocString,
     fields: Vec<FieldDeclaration>,
 }
 
 impl EventDeclaration {
     // Create a new event
-    fn new(name: String, docstring: DocString, fields: Vec<FieldDeclaration>) -> Self {
+    fn new(name: String, doc_str: DocString, fields: Vec<FieldDeclaration>) -> Self {
         EventDeclaration {
-            name: name,
-            docstring: docstring,
-            fields: fields,
+            name,
+            doc_str,
+            fields,
         }
     }
 }
@@ -94,7 +94,7 @@ impl Named for EventDeclaration {
 
 impl Documented for EventDeclaration {
     fn get_docstring(&self) -> DocString {
-        self.docstring.clone()
+        self.doc_str.clone()
     }
 }
 
@@ -107,8 +107,8 @@ pub struct MetaModel {
 
 impl MetaModel {
     /// Construct a new MetaModel
-    fn new(evts: Vec<EventDeclaration>) -> Self {
-        MetaModel { events: evts }
+    fn new(events: Vec<EventDeclaration>) -> Self {
+        MetaModel { events }
     }
 }
 
