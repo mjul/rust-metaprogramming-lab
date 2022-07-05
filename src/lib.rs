@@ -62,7 +62,7 @@ impl Named for FieldDeclaration {
 
 impl Documented for FieldDeclaration {
     fn get_docstring(&self) -> DocString {
-        self.doc_string.clone()
+        self.doc_str.clone()
     }
 }
 
