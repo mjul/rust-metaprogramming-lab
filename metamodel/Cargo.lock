@@ -5,30 +5,9 @@ version = 3
 [[package]]
 name = "metamodel"
 version = "0.1.0"
-
-[[package]]
-name = "metamodel_macros"
-version = "0.1.0"
 dependencies = [
- "metamodel",
  "quote",
  "syn",
-]
-
-[[package]]
-name = "metamodel_test"
-version = "0.1.0"
-dependencies = [
- "metamodel",
- "metamodel_macros",
-]
-
-[[package]]
-name = "metaprogramming_lab"
-version = "0.1.0"
-dependencies = [
- "metamodel",
- "metamodel_macros",
 ]
 
 [[package]]
