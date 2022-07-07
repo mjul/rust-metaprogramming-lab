@@ -1,23 +1,27 @@
 extern crate metamodel;
 extern crate metamodel_macros;
 
-use metamodel::{Documentation, Expr, Name};
+use metamodel::{Documentation, Expr, FieldDeclaration, Name, RecordDeclaration};
 use metamodel_macros::{generate_data_structures, generate_model_from_tuple};
 
 #[cfg(test)]
 mod tests {
     mod generate_data_structures_tests {
+        use metamodel::FieldDeclaration;
+
         use super::super::*;
 
         #[test]
         fn must_emit_data_structure_for_record_declaration_expr() {
-            let foo_model: Expr = Expr::RecordDeclarationExpr(
+            let no_fields: Vec<FieldDeclaration> = Vec::new();
+            let foo_model: Expr = Expr::RecordDeclarationExpr(RecordDeclaration::new(
                 Name::Literal(String::from("Foo")),
                 Documentation::new(
                     "Foo Record",
                     "A Foo is a very important entity with just and ID.",
                 ),
-            );
+                no_fields,
+            ));
             generate_data_structures!(foo_model);
 
             /*generate_data_structures!(Expr::RecordDeclarationExpr(

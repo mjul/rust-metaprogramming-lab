@@ -106,7 +106,6 @@ fn parse_lit_string(lit: &syn::Expr) -> Option<String> {
                 syn::Lit::Str(s) => Some(s.value()),
                 _ => todo!(),
             },
-            _ => todo!(),
         },
         _ => todo!(),
     }
@@ -133,7 +132,6 @@ fn parse_tuple_string_string(tup: &syn::Expr) -> Option<(String, String)> {
                     _ => todo!(),
                 }
             }
-            _ => todo!(),
         },
         _ => todo!(),
     }
@@ -189,7 +187,6 @@ fn parse_tuple_string_map(tup: &syn::Expr) -> Option<(String, HashMap<String, St
                     _ => todo!(),
                 }
             }
-            _ => todo!(),
         },
         _ => todo!(),
     }
@@ -285,11 +282,18 @@ pub fn generate_model_from_tuple(input: TokenStream) -> TokenStream {
 
                                                     match (name, docs_map) {
                                                         (Some(n), Some(dm)) => {
+                                                            let no_fields: Vec<
+                                                                metamodel::FieldDeclaration,
+                                                            > = vec![];
                                                             metamodel::Expr::RecordDeclarationExpr(
-                                                                metamodel::Name::Literal(n),
-                                                                metamodel::Documentation::new(
-                                                                    dm.get("label").unwrap(),
-                                                                    dm.get("description").unwrap(),
+                                                                metamodel::RecordDeclaration::new(
+                                                                    metamodel::Name::Literal(n),
+                                                                    metamodel::Documentation::new(
+                                                                        dm.get("label").unwrap(),
+                                                                        dm.get("description")
+                                                                            .unwrap(),
+                                                                    ),
+                                                                    no_fields,
                                                                 ),
                                                             )
                                                         }
@@ -318,11 +322,16 @@ pub fn generate_model_from_tuple(input: TokenStream) -> TokenStream {
     println!("🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀 macro input parsing completed...");
     println!("🚀🚀🚀 meta-model: {:?}", ast);
 
-
     let code = match ast {
-        metamodel::Expr::RecordDeclarationExpr(metamodel::Name::Literal(name), _docs) => {
-            let struct_ident : syn::Ident = syn::parse_str(&name).unwrap();
-            quote!( struct #struct_ident {} )
+        metamodel::Expr::RecordDeclarationExpr(rd) =>
+        match rd {
+            metamodel::RecordDeclaration { name, documentation:_ , fields:_ } =>
+            match name {
+                metamodel::Name::Literal(name) => {
+                    let struct_ident: syn::Ident = syn::parse_str(&name).unwrap();
+                    quote!( struct #struct_ident {} )
+                }
+            }
         },
         _ => todo!(),
     };
