@@ -11,12 +11,13 @@ for that data.
 ## Project Structure
 
 ### `metamodel`
-This is the Cargo crate with the meta-model and the compilers. It must be in a separate crate since Rust macros are compiler extentions, so
-they must be compile in a whole compile-unit before they can be used.
+This is the crate with the meta-model types.
 
 ### `metamodel_macros`
 This is the Cargo crate with the meta-model macros. It must be in a separate crate since Rust procedural macros (`proc_macro`) are compiler extentions, so
 they must be compile in a whole compile-unit before they can be used.
+
+This kind of crate can only export the macro functions, hence the types used are in the crate mentioned above.
 
 ### `metamodel_test`
 This crate contains tests for the meta-model.
