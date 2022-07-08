@@ -193,7 +193,6 @@ fn parse_tuple_string_map(tup: &syn::Expr) -> Option<(String, HashMap<String, St
     }
 }
 
-
 /// Given a (key, value) pair as a tuple, extract the value if the key matches the expected tag value.
 fn get_named_value_from_pair<T>(expected_tag: &str, (k, v): (String, T)) -> Option<T> {
     if expected_tag == k.as_str() {
@@ -270,11 +269,25 @@ fn parse_array_with_name_and_documentation_tuple(
         },
         _ => todo!(),
     }
-
-
 }
 
+/// Parse a tuple of (tag, string) where the tag must match the given tag.
+fn parse_tuple_with_tagged_string(tag: &str, expr: &syn::Expr) -> Option<String> {
+    match parse_tuple_string_string(&expr) {
+        Some((k, v)) => {
+            if tag == k {
+                Some(v)
+            } else {
+                None
+            }
+        }
+        _ => todo!("not a tuple of (key,value) strings!"),
+    }
+}
 
+fn parse_documentation_tuple(expr: &syn::Expr) -> Option<String> {
+    todo!()
+}
 
 fn parse_tuple_with_string_and_array_of_name_and_documentation_tuples(
     expr: &syn::Expr,
@@ -301,6 +314,24 @@ fn parse_tuple_with_string_and_array_of_name_and_documentation_tuples(
                                     } => {
                                         let arr = vec![];
                                         for field_expr in elems.iter() {
+                                            match field_expr {
+                                                syn::Expr::Tuple(syn::ExprTuple {
+                                                    attrs: _,
+                                                paren_token: _,
+                                                elems,
+                                                }) => {
+                                                    let mut fi = elems.iter();
+                                                    match (fi.next(), fi.next(), fi.next(), fi.next()) {
+                                                        (Some(name_expr), Some(docs_expr), Some(type_expr), None) => {
+                                                            let opt_name_kv = parse_tuple_with_tagged_string("name", &name_expr);
+                                                            let opt_docs = parse_documentation_tuple(&docs_expr);
+                                                            let opt_type = parse_tuple_with_tagged_string("type", &type_expr);
+                                                        },
+                                                        _ => todo!()
+                                                    }
+                                                },
+                                                _ => todo!("exmpected a tuple for each field")
+                                            }
                                             // let ((name_key,name),(docs_key, docs),(type_key, ty)) = parse_array_of_string_string_tuple_and_string_map_tuple_and_string_string_tuple(&field_expr);
                                             // TODO: assert correct keys
                                             // arr.push((name,docs,ty));
@@ -394,29 +425,24 @@ fn generate_code_for_meta_model(ast: metamodel::Expr) -> TokenStream {
     code.into()
 }
 
-
 /// Create a metamodel Name object from a string
-fn to_metamodel_name(name : &str) -> metamodel::Name {
+fn to_metamodel_name(name: &str) -> metamodel::Name {
     metamodel::Name::Literal(name.to_string())
 }
 
 /// Create the metamodel Documentation object from a map of key-values
-fn to_metamodel_documentation (dm : &HashMap<String, String>) -> metamodel::Documentation {
-    metamodel::Documentation::new(
-            dm.get("label").unwrap(),
-            dm.get("description").unwrap(),
-    )
+fn to_metamodel_documentation(dm: &HashMap<String, String>) -> metamodel::Documentation {
+    metamodel::Documentation::new(dm.get("label").unwrap(), dm.get("description").unwrap())
 }
 
 /// Create a metamodel Type object from a string
-fn to_metamodel_type(type_name : &str) -> metamodel::Type {
+fn to_metamodel_type(type_name: &str) -> metamodel::Type {
     match type_name {
         "ID" => metamodel::Type::Primitive(metamodel::PrimitiveType::Id),
         "LocalDate" => metamodel::Type::Primitive(metamodel::PrimitiveType::LocalDate),
         _ => todo!("unknown type"),
     }
 }
-
 
 #[proc_macro]
 pub fn generate_model_from_tuple(input: TokenStream) -> TokenStream {
