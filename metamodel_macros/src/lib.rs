@@ -224,8 +224,53 @@ mod tests {
     }
 }
 
+/// Parse an Array with a name and an documentation tuple, e.g. [("name", "foo"), ("documentation", [("label", "Foo"), ("description", "Description of Foo")])]
+fn parse_array_with_name_and_documentation_tuple(
+    expr: &syn::Expr,
+) -> Option<(String, HashMap<String, String>)> {
+    match expr {
+        syn::Expr::Array(a) => match a {
+            syn::ExprArray {
+                attrs,
+                bracket_token,
+                elems,
+            } => {
+                println!("🚀🚀🚀 parsing an ARRAY with name and documentation!");
+                let mut ai = elems.iter();
+                match (ai.next(), ai.next(), ai.next()) {
+                    (Some(head), Some(tail), None) => {
+                        let name_pair = parse_tuple_string_string(head);
+                        println!("🚀🚀🚀 name_pair: {:?}", name_pair);
+                        let name = match name_pair {
+                            Some(np) => get_named_value_from_pair("name", np),
+                            None => None,
+                        };
+                        println!("🚀🚀🚀 name: {:?}", name);
 
-fn generate_code_for_meta_model(ast : metamodel::Expr) -> TokenStream {
+                        println!("🚀🚀🚀 tail: {:?}", tail);
+
+                        let docs_pair = parse_tuple_string_map(tail);
+                        println!("🚀🚀🚀 docs_pair: {:?}", docs_pair);
+                        let docs_map = match docs_pair {
+                            Some(dp) => get_named_value_from_pair("documentation", dp),
+                            None => todo!(),
+                        };
+                        println!("🚀🚀🚀 docs_map: {:?}", docs_map);
+
+                        match (name, docs_map) {
+                            (Some(n), Some(dm)) => Some((n, dm)),
+                            _ => todo!(),
+                        }
+                    }
+                    _ => todo!(),
+                }
+            }
+        },
+        _ => todo!(),
+    }
+}
+
+fn generate_code_for_meta_model(ast: metamodel::Expr) -> TokenStream {
     println!("🚀🚀🚀 meta-model: {:?}", ast);
 
     let code = match ast {
@@ -237,39 +282,55 @@ fn generate_code_for_meta_model(ast : metamodel::Expr) -> TokenStream {
             } => match name {
                 metamodel::Name::Literal(name) => {
                     let struct_ident: syn::Ident = syn::parse_str(&name).unwrap();
-                    let struct_path_ident : syn::Path = syn::parse_str(&name).unwrap();
-                    let struct_fields: syn::Fields = match fields.is_empty() {
-                        true => syn::Fields::Unit,
-                        false => {
-                            let mut pnames : syn::punctuated::Punctuated<syn::Field, syn::Token![,]> = syn::punctuated::Punctuated::new();
-                            for fd in fields.iter() {
-                                // TODO: take the field name
-                                let field_ident_path : syn::Path = syn::parse_str("foobar").unwrap();
-                                let field_expr_path : syn::ExprPath = syn::parse_str("i32").unwrap();
-                                let i32_path : syn::Path = syn::parse_str("i32").unwrap();
+                    let struct_path_ident: syn::Path = syn::parse_str(&name).unwrap();
 
-                                // build FieldValue instance  { attrs, member, colon_token, expr }
-                                let fv_member_ident : syn::Ident = syn::parse_str("x").unwrap();
-                                //let fv_member = syn::Member::Named(fv_member_ident);
-                                let fv_colon = Some(syn::token::Colon::default());
-                                let fv_expr_path : syn::Path = syn::parse_str("i32").unwrap();
-                                //let fv_expr = syn::Expr::Path(syn::ExprPath {attrs:  vec![], qself: None, path: fv_expr_path});
-                                //let fv = syn::FieldValue { attrs: vec![], member:fv_member, colon_token: fv_colon, expr: fv_expr};
+                    // Fields
+                    let mut pnames: syn::punctuated::Punctuated<
+                        syn::Field,
+                        syn::Token![,],
+                    > = syn::punctuated::Punctuated::new();
+                    for fd in fields.iter() {
+                        let metamodel::Name::Literal(field_name) = &fd.name;
+                        let field_type = match &fd.field_type {
+                            // pick the corresponding Rust data types
+                            metamodel::Type::Primitive(metamodel::PrimitiveType::Id) => "u64",
+                            metamodel::Type::Primitive(metamodel::PrimitiveType::LocalDate) => "String",
+                        };
 
-                                let field : syn::Field = syn::Field { attrs:vec![],
-                                    vis:syn::Visibility::Public(syn::VisPublic {pub_token: syn::token::Pub::default()}),
-                                    ident: Some(fv_member_ident),
-                                    colon_token: fv_colon,
-                                    ty: syn::Type::Path(syn::TypePath { qself: None, path:fv_expr_path }),
-                                };
-                                pnames.push(field);
+                        // experimental
+                        let field_ident_path: syn::Path = syn::parse_str("foobar").unwrap();
+                        let field_expr_path: syn::ExprPath = syn::parse_str("i32").unwrap();
+                        let i32_path: syn::Path = syn::parse_str("i32").unwrap();
 
-                            }
-                            syn::Fields::Named(syn::FieldsNamed { brace_token: syn::token::Brace::default(), named: pnames })
-                        },
-                    };
+                        // build FieldValue instance  { attrs, member, colon_token, expr }
+                        let fv_member_ident: syn::Ident = syn::parse_str(field_name.as_str()).unwrap();
+                        //let fv_member = syn::Member::Named(fv_member_ident);
+                        let fv_colon = Some(syn::token::Colon::default());
+                        let fv_expr_path: syn::Path = syn::parse_str(field_type).unwrap();
+                        //let fv_expr = syn::Expr::Path(syn::ExprPath {attrs:  vec![], qself: None, path: fv_expr_path});
+                        //let fv = syn::FieldValue { attrs: vec![], member:fv_member, colon_token: fv_colon, expr: fv_expr};
+
+                        let field: syn::Field = syn::Field {
+                            attrs: vec![],
+                            vis: syn::Visibility::Public(syn::VisPublic {
+                                pub_token: syn::token::Pub::default(),
+                            }),
+                            ident: Some(fv_member_ident),
+                            colon_token: fv_colon,
+                            ty: syn::Type::Path(syn::TypePath {
+                                qself: None,
+                                path: fv_expr_path,
+                            }),
+                        };
+                        pnames.push(field);
+                    }
+                    let struct_fields = syn::Fields::Named(syn::FieldsNamed {
+                        brace_token: syn::token::Brace::default(),
+                        named: pnames,
+                    });
+
                     //let struct_expr = syn::ExprStruct { attrs: vec![], path: struct_path_ident, brace_token: syn::token::Brace::default(), fields: struct_fields };
-                    quote!( struct #struct_ident { #struct_fields } )
+                    quote!( struct #struct_ident #struct_fields )
                 }
             },
         },
@@ -303,71 +364,31 @@ pub fn generate_model_from_tuple(input: TokenStream) -> TokenStream {
                         Some(tag) => match tag.as_str() {
                             "record" => {
                                 println!("🚀🚀🚀 compiling a RECORD type!");
-                                match tail {
-                                    syn::Expr::Array(a) => match a {
-                                        syn::ExprArray {
-                                            attrs,
-                                            bracket_token,
-                                            elems,
-                                        } => {
-                                            println!("🚀🚀🚀 compiling an ARRAY!");
-                                            let mut ai = elems.iter();
-                                            match (ai.next(), ai.next(), ai.next()) {
-                                                (Some(head), Some(tail), None) => {
-                                                    let name_pair = parse_tuple_string_string(head);
-                                                    println!("🚀🚀🚀 name_pair: {:?}", name_pair);
-                                                    let name = match name_pair {
-                                                        Some(np) => {
-                                                            get_named_value_from_pair("name", np)
-                                                        }
-                                                        None => None,
-                                                    };
-                                                    println!("🚀🚀🚀 name: {:?}", name);
+                                match parse_array_with_name_and_documentation_tuple(&tail) {
+                                    Some((n, dm)) => {
+                                        let no_fields: Vec<metamodel::FieldDeclaration> = vec![];
 
-                                                    println!("🚀🚀🚀 tail: {:?}", tail);
+                                        let one_field = vec![metamodel::FieldDeclaration::new(
+                                            metamodel::Name::Literal(String::from("id")),
+                                            metamodel::Documentation::new("ID", "The entity ID."),
+                                            metamodel::Type::Primitive(
+                                                metamodel::PrimitiveType::Id,
+                                            ),
+                                        )];
 
-                                                    let docs_pair = parse_tuple_string_map(tail);
-                                                    println!("🚀🚀🚀 docs_pair: {:?}", docs_pair);
-                                                    let docs_map = match docs_pair {
-                                                        Some(dp) => get_named_value_from_pair(
-                                                            "documentation",
-                                                            dp,
-                                                        ),
-                                                        None => todo!(),
-                                                    };
-                                                    println!("🚀🚀🚀 docs_map: {:?}", docs_map);
-
-                                                    match (name, docs_map) {
-                                                        (Some(n), Some(dm)) => {
-                                                            let no_fields: Vec<
-                                                                metamodel::FieldDeclaration,
-                                                            > = vec![];
-
-                                                            let one_field = vec![metamodel::FieldDeclaration::new(metamodel::Name::Literal(String::from("id")),
-                                                            metamodel::Documentation::new("ID", "The entity ID."),
-                                                            metamodel::Type::Primitive(metamodel::PrimitiveType::Id))];
-
-                                                            metamodel::Expr::RecordDeclarationExpr(
-                                                                metamodel::RecordDeclaration::new(
-                                                                    metamodel::Name::Literal(n),
-                                                                    metamodel::Documentation::new(
-                                                                        dm.get("label").unwrap(),
-                                                                        dm.get("description")
-                                                                            .unwrap(),
-                                                                    ),
-                                                                    no_fields,
-                                                                    //one_field,
-                                                                ),
-                                                            )
-                                                        }
-                                                        _ => todo!(),
-                                                    }
-                                                }
-                                                _ => todo!(),
-                                            }
-                                        }
-                                    },
-                                    _ => todo!(),
+                                        metamodel::Expr::RecordDeclarationExpr(
+                                            metamodel::RecordDeclaration::new(
+                                                metamodel::Name::Literal(n),
+                                                metamodel::Documentation::new(
+                                                    dm.get("label").unwrap(),
+                                                    dm.get("description").unwrap(),
+                                                ),
+                                                no_fields,
+                                                //one_field,
+                                            ),
+                                        )
+                                    }
+                                    None => todo!("parse error, no or invalid array"),
                                 }
                             }
                             _ => todo!("unknown tag"),
@@ -378,7 +399,7 @@ pub fn generate_model_from_tuple(input: TokenStream) -> TokenStream {
                 _ => todo!(),
             }
         }
-        _ => todo!(),
+        _ => todo!("expected a tuple"),
     };
 
     println!("🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀 macro input parsing completed...");
@@ -402,14 +423,14 @@ pub fn generate_model_from_tuple(input: TokenStream) -> TokenStream {
 
 #[cfg(test)]
 mod playground_tests {
-    use syn::{parse_str};
+    use syn::parse_str;
     #[test]
     fn expr() {
-        let es : syn::ExprStruct = syn::parse_str("Foo { a: i32, b : usize }").unwrap();
+        let es: syn::ExprStruct = syn::parse_str("Foo { a: i32, b : usize }").unwrap();
         dbg!(es);
         //let p : syn::Path = syn::parse_str("foobar").unwrap();
         //dbg!(p);
-        let fv : syn::FieldValue = syn::parse_str("id: i32").unwrap();
+        let fv: syn::FieldValue = syn::parse_str("id: i32").unwrap();
         dbg!(fv);
     }
 }

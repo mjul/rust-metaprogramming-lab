@@ -32,9 +32,9 @@ impl Documentation {
 
 #[derive(Debug)]
 pub struct FieldDeclaration {
-    name: Name,
-    documentation: Documentation,
-    field_type: Type,
+    pub name: Name,
+    pub documentation: Documentation,
+    pub field_type: Type,
 }
 
 impl FieldDeclaration {
