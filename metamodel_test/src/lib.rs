@@ -58,6 +58,7 @@ mod tests {
                         ],
                     ),
                 ],
+                ("fields", [])
             ));
 
             // If this compiles, we the struct has been generated
@@ -65,7 +66,6 @@ mod tests {
 
             assert_eq!(true, true);
         }
-
 /*
         #[test]
         fn must_emit_data_structure_for_record_declaration_with_one_field() {
@@ -84,23 +84,27 @@ mod tests {
                         ],
                     ),
                 ],
-                [
-                    ("name", "id"),
-                    (
-                        "documentation",
-                        [
-                            ("label", "ID"),
-                            ("description", "The unique Bar entity ID.")
-                        ]
-                    )
-                ]
+                (
+                    "fields",
+                    [
+                        ("name", "id"),
+                        (
+                            "documentation",
+                            [
+                                ("label", "ID"),
+                                ("description", "The unique Bar entity ID.")
+                            ]
+                        )
+                    ]
+                )
             ));
 
             // If this compiles, we the struct has been generated
-            let _actual = Bar {id:1};
+            let _actual = Bar { id: 1 };
 
             assert_eq!(1, actual.id);
         }
 */
+
     }
 }

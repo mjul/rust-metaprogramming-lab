@@ -155,6 +155,7 @@ fn parse_array_of_string_string_tuples(arr: &syn::Expr) -> Option<Vec<(String, S
     }
 }
 
+/// Parse a Tuple expressions that has a string and a map as an Array of (key,value)-pairs)
 fn parse_tuple_string_map(tup: &syn::Expr) -> Option<(String, HashMap<String, String>)> {
     match tup {
         syn::Expr::Tuple(te) => match te {
@@ -191,6 +192,7 @@ fn parse_tuple_string_map(tup: &syn::Expr) -> Option<(String, HashMap<String, St
         _ => todo!(),
     }
 }
+
 
 /// Given a (key, value) pair as a tuple, extract the value if the key matches the expected tag value.
 fn get_named_value_from_pair<T>(expected_tag: &str, (k, v): (String, T)) -> Option<T> {
@@ -268,6 +270,55 @@ fn parse_array_with_name_and_documentation_tuple(
         },
         _ => todo!(),
     }
+
+
+}
+
+
+
+fn parse_tuple_with_string_and_array_of_name_and_documentation_tuples(
+    expr: &syn::Expr,
+) -> Option<(String, Vec<(String, HashMap<String, String>)>)> {
+    match expr {
+        syn::Expr::Tuple(syn::ExprTuple {
+            attrs: _,
+            paren_token: _,
+            elems,
+        }) => {
+            let mut i = elems.iter();
+            match (i.next(), i.next(), i.next()) {
+                (Some(tag_expr), Some(array_expr), None) => {
+                    println!("🚀🚀🚀 tag_expr    = {:?}", tag_expr);
+                    let opt_tag = parse_lit_string(tag_expr);
+                    match opt_tag {
+                        Some(tag) => {
+                            match array_expr {
+                                syn::Expr::Array(ae) => match ae {
+                                    syn::ExprArray {
+                                        attrs: _,
+                                        bracket_token: _,
+                                        elems,
+                                    } => {
+                                        let arr = vec![];
+                                        for field_expr in elems.iter() {
+                                            // let ((name_key,name),(docs_key, docs),(type_key, ty)) = parse_array_of_string_string_tuple_and_string_map_tuple_and_string_string_tuple(&field_expr);
+                                            // TODO: assert correct keys
+                                            // arr.push((name,docs,ty));
+                                        }
+                                        Some((tag.to_string(), arr))
+                                    },
+                                },
+                                _ => todo!("expected an array expression following the tag"),
+                            }
+                        },
+                        None => todo!("expected a literal string tag as first element of tuple: (tag, [name-doc-tuples...])"),
+                    }
+                }
+                _ => todo!("expected tuple of two elements: (tag, [name-doc-tuples...])"),
+            }
+        }
+        _ => None,
+    }
 }
 
 fn generate_code_for_meta_model(ast: metamodel::Expr) -> TokenStream {
@@ -285,16 +336,16 @@ fn generate_code_for_meta_model(ast: metamodel::Expr) -> TokenStream {
                     let struct_path_ident: syn::Path = syn::parse_str(&name).unwrap();
 
                     // Fields
-                    let mut pnames: syn::punctuated::Punctuated<
-                        syn::Field,
-                        syn::Token![,],
-                    > = syn::punctuated::Punctuated::new();
+                    let mut pnames: syn::punctuated::Punctuated<syn::Field, syn::Token![,]> =
+                        syn::punctuated::Punctuated::new();
                     for fd in fields.iter() {
                         let metamodel::Name::Literal(field_name) = &fd.name;
                         let field_type = match &fd.field_type {
                             // pick the corresponding Rust data types
                             metamodel::Type::Primitive(metamodel::PrimitiveType::Id) => "u64",
-                            metamodel::Type::Primitive(metamodel::PrimitiveType::LocalDate) => "String",
+                            metamodel::Type::Primitive(metamodel::PrimitiveType::LocalDate) => {
+                                "String"
+                            }
                         };
 
                         // experimental
@@ -303,7 +354,8 @@ fn generate_code_for_meta_model(ast: metamodel::Expr) -> TokenStream {
                         let i32_path: syn::Path = syn::parse_str("i32").unwrap();
 
                         // build FieldValue instance  { attrs, member, colon_token, expr }
-                        let fv_member_ident: syn::Ident = syn::parse_str(field_name.as_str()).unwrap();
+                        let fv_member_ident: syn::Ident =
+                            syn::parse_str(field_name.as_str()).unwrap();
                         //let fv_member = syn::Member::Named(fv_member_ident);
                         let fv_colon = Some(syn::token::Colon::default());
                         let fv_expr_path: syn::Path = syn::parse_str(field_type).unwrap();
@@ -342,6 +394,30 @@ fn generate_code_for_meta_model(ast: metamodel::Expr) -> TokenStream {
     code.into()
 }
 
+
+/// Create a metamodel Name object from a string
+fn to_metamodel_name(name : &str) -> metamodel::Name {
+    metamodel::Name::Literal(name.to_string())
+}
+
+/// Create the metamodel Documentation object from a map of key-values
+fn to_metamodel_documentation (dm : &HashMap<String, String>) -> metamodel::Documentation {
+    metamodel::Documentation::new(
+            dm.get("label").unwrap(),
+            dm.get("description").unwrap(),
+    )
+}
+
+/// Create a metamodel Type object from a string
+fn to_metamodel_type(type_name : &str) -> metamodel::Type {
+    match type_name {
+        "ID" => metamodel::Type::Primitive(metamodel::PrimitiveType::Id),
+        "LocalDate" => metamodel::Type::Primitive(metamodel::PrimitiveType::LocalDate),
+        _ => todo!("unknown type"),
+    }
+}
+
+
 #[proc_macro]
 pub fn generate_model_from_tuple(input: TokenStream) -> TokenStream {
     let item: syn::Expr = syn::parse(input).expect("failed to parse input");
@@ -355,48 +431,68 @@ pub fn generate_model_from_tuple(input: TokenStream) -> TokenStream {
             elems,
         }) => {
             let mut i = elems.iter();
-            match (i.next(), i.next(), i.next()) {
-                (Some(head), Some(tail), None) => {
-                    println!("head = {:?}", head);
-                    println!("tail = {:?}", tail);
-                    let opt_tag = parse_lit_string(head);
+            match (i.next(), i.next(), i.next(), i.next()) {
+                (Some(tag_expr), expr1, expr2, expr3) => {
+                    println!("🚀🚀🚀 tag_expr    = {:?}", tag_expr);
+                    let opt_tag = parse_lit_string(tag_expr);
                     match opt_tag {
                         Some(tag) => match tag.as_str() {
                             "record" => {
                                 println!("🚀🚀🚀 compiling a RECORD type!");
-                                match parse_array_with_name_and_documentation_tuple(&tail) {
-                                    Some((n, dm)) => {
-                                        let no_fields: Vec<metamodel::FieldDeclaration> = vec![];
+                                match (expr1, expr2, expr3) {
+                                    (Some(name_expr),Some(fields_expr), None) => {
+                                        match parse_array_with_name_and_documentation_tuple(&name_expr) {
+                                            Some((n, dm)) => {
+                                                let opt_fields = parse_tuple_with_string_and_array_of_name_and_documentation_tuples(&fields_expr);
 
-                                        let one_field = vec![metamodel::FieldDeclaration::new(
-                                            metamodel::Name::Literal(String::from("id")),
-                                            metamodel::Documentation::new("ID", "The entity ID."),
-                                            metamodel::Type::Primitive(
-                                                metamodel::PrimitiveType::Id,
-                                            ),
-                                        )];
+                                                println!("🚀🚀🚀 compiling a RECORD type with fields: {:?}", opt_fields);
+                                                let fields = match opt_fields {
+                                                    Some((tag, field_name_docs)) => {
+                                                        match tag.as_str() {
+                                                            "fields" => {
+                                                                println!("🚀🚀🚀 compiling fields: {:?}", field_name_docs);
+                                                                let mut fields : Vec<metamodel::FieldDeclaration> = vec![];
+                                                                for (name, docs) in field_name_docs.iter() {
+                                                                    let ty = "ID";
+                                                                    println!("🚀🚀🚀 compiling field: {:?} {:?} {:?}", name, docs, ty);
+                                                                    let fd = metamodel::FieldDeclaration::new(
+                                                                            to_metamodel_name(name),
+                                                                            to_metamodel_documentation(&docs),
+                                                                            to_metamodel_type(&ty),
+                                                                            );
+                                                                    fields.push(fd);
+                                                                }
+                                                                fields
+                                                            },
+                                                            _ => todo!("incorrect tag, expected 'fields'"),
+                                                        }},
+                                                    _ => todo!("invalid fields declaration"),
+                                                };
 
-                                        metamodel::Expr::RecordDeclarationExpr(
-                                            metamodel::RecordDeclaration::new(
-                                                metamodel::Name::Literal(n),
-                                                metamodel::Documentation::new(
-                                                    dm.get("label").unwrap(),
-                                                    dm.get("description").unwrap(),
-                                                ),
-                                                no_fields,
-                                                //one_field,
-                                            ),
-                                        )
-                                    }
-                                    None => todo!("parse error, no or invalid array"),
+                                                metamodel::Expr::RecordDeclarationExpr(
+                                                        metamodel::RecordDeclaration::new(
+                                                            to_metamodel_name(&n),
+                                                            to_metamodel_documentation(&dm),
+                                                            fields,
+                                                        ),
+                                                )
+                                            },
+                                            None => todo!("could not parse name and documentation tuple"),
+                                        }
+                                    },
+                                    (Some(_),None, None) => todo!("invalid record declaration (fields missing), expected tuple of three elements, (tag, [name...], (fields [...]))"),
+                                    _ => todo!("invalid record declaration, expected tuple of three elements, (tag, [name...], (fields [...]))"),
                                 }
+                                // end "record"
                             }
                             _ => todo!("unknown tag"),
                         },
-                        None => todo!("No tag found as first element of first tuple."),
+                        None => {
+                            todo!("No literal string tag found as first element of first tuple.")
+                        }
                     }
                 }
-                _ => todo!(),
+                (None, _, _, _) => todo!("Expected non-empty tuple"),
             }
         }
         _ => todo!("expected a tuple"),
