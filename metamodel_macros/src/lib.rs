@@ -332,7 +332,7 @@ fn parse_tuple_with_string_and_array_of_name_and_documentation_tuples(
                                                         _ => todo!()
                                                     }
                                                 },
-                                                _ => todo!("exmpected a tuple for each field")
+                                                _ => todo!("expected a tuple for each field")
                                             }
                                             // let ((name_key,name),(docs_key, docs),(type_key, ty)) = parse_array_of_string_string_tuple_and_string_map_tuple_and_string_string_tuple(&field_expr);
                                             // TODO: assert correct keys
