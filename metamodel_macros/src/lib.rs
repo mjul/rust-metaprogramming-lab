@@ -242,6 +242,7 @@ fn parse_array_with_name_and_documentation_tuple(
                 let mut ai = elems.iter();
                 match (ai.next(), ai.next(), ai.next()) {
                     (Some(head), Some(tail), None) => {
+                        // TODO: use parse_tuple_with_tagged_string(tag, expr)
                         let name_pair = parse_tuple_string_string(head);
                         println!("🚀🚀🚀 name_pair: {:?}", name_pair);
                         let name = match name_pair {
@@ -252,12 +253,9 @@ fn parse_array_with_name_and_documentation_tuple(
 
                         println!("🚀🚀🚀 tail: {:?}", tail);
 
-                        let docs_pair = parse_tuple_string_map(tail);
-                        println!("🚀🚀🚀 docs_pair: {:?}", docs_pair);
-                        let docs_map = match docs_pair {
-                            Some(dp) => get_named_value_from_pair("documentation", dp),
-                            None => todo!(),
-                        };
+                        // TODO: use parse_tuple_with_tagged_string(tag, expr)
+
+                        let docs_map = parse_documentation_tuple(&tail);
                         println!("🚀🚀🚀 docs_map: {:?}", docs_map);
 
                         match (name, docs_map) {
@@ -287,13 +285,19 @@ fn parse_tuple_with_tagged_string(tag: &str, expr: &syn::Expr) -> Option<String>
     }
 }
 
-fn parse_documentation_tuple(expr: &syn::Expr) -> Option<String> {
-    todo!()
+/// Parse a documentation tuple, e.g.: ("documentation", [("label", "ID"), ("description", "The unique Bar entity ID.")])
+fn parse_documentation_tuple(expr: &syn::Expr) -> Option<HashMap<String,String>> {
+    let docs_pair = parse_tuple_string_map(expr);
+    let docs_map = match docs_pair {
+        Some(dp) => get_named_value_from_pair("documentation", dp),
+        None => todo!("invalid documentation tuple"),
+    };
+    docs_map
 }
 
-fn parse_tuple_with_string_and_array_of_name_and_documentation_tuples(
+fn parse_tuple_with_string_and_array_of_array_of_name_and_documentation_and_type_tuples(
     expr: &syn::Expr,
-) -> Option<(String, Vec<(String, HashMap<String, String>)>)> {
+) -> Option<(String, Vec<(String, HashMap<String, String>, String)>)> {
     match expr {
         syn::Expr::Tuple(syn::ExprTuple {
             attrs: _,
@@ -302,44 +306,53 @@ fn parse_tuple_with_string_and_array_of_name_and_documentation_tuples(
         }) => {
             let mut i = elems.iter();
             match (i.next(), i.next(), i.next()) {
-                (Some(tag_expr), Some(array_expr), None) => {
-                    println!("🚀🚀🚀 tag_expr    = {:?}", tag_expr);
+                (Some(tag_expr), Some(outer_array_expr), None) => {
+                    println!("🚀🚀🚀 tag_expr = {:?}", tag_expr);
                     let opt_tag = parse_lit_string(tag_expr);
                     match opt_tag {
                         Some(tag) => {
-                            match array_expr {
+                            println!("🚀🚀🚀 outer_array_expr = {:?}", outer_array_expr);
+                            match outer_array_expr {
                                 syn::Expr::Array(ae) => match ae {
                                     syn::ExprArray {
                                         attrs: _,
                                         bracket_token: _,
                                         elems,
                                     } => {
-                                        let arr = vec![];
-                                        for field_expr in elems.iter() {
-                                            match field_expr {
-                                                syn::Expr::Tuple(syn::ExprTuple {
-                                                    attrs: _,
-                                                paren_token: _,
-                                                elems,
-                                                }) => {
-                                                    let mut fi = elems.iter();
-                                                    match (fi.next(), fi.next(), fi.next(), fi.next()) {
-                                                        (Some(name_expr), Some(docs_expr), Some(type_expr), None) => {
-                                                            let opt_name_kv = parse_tuple_with_tagged_string("name", &name_expr);
-                                                            let opt_docs = parse_documentation_tuple(&docs_expr);
-                                                            let opt_type = parse_tuple_with_tagged_string("type", &type_expr);
-                                                        },
-                                                        _ => todo!()
-                                                    }
+                                        // the elems of the outer array are the inner arrays
+                                        let mut result : Vec<(String, HashMap<String, String>, String)> = vec![];
+                                        for inner_array_expr in elems.iter() {
+                                            match inner_array_expr {
+                                                syn::Expr::Array(iae) => match iae {
+                                                    syn::ExprArray {
+                                                        attrs: _,
+                                                    bracket_token: _,
+                                                    elems,
+                                                    } => {
+                                                        println!("🚀🚀🚀 inner_array_expr = {:?}", iae);
+                                                        let mut fi = elems.iter();
+                                                        match (fi.next(), fi.next(), fi.next(), fi.next()) {
+                                                            (Some(name_expr), Some(docs_expr), Some(type_expr), None) => {
+                                                                let opt_name = parse_tuple_with_tagged_string("name", &name_expr);
+                                                                println!("🚀🚀🚀 >>> opt_name_kv = {:?}", opt_name);
+                                                                let opt_docs = parse_documentation_tuple(&docs_expr);
+                                                                println!("🚀🚀🚀 >>> opt_docs = {:?}", opt_docs);
+                                                                let opt_type = parse_tuple_with_tagged_string("type", &type_expr);
+                                                                println!("🚀🚀🚀 >>> opt_type = {:?}", opt_type);
+                                                                match (opt_name, opt_docs, opt_type) {
+                                                                    (Some(name), Some(docs), Some(ty)) => {result.push((name, docs, ty));},
+                                                                    _ => todo!("invalid name, docs, or type")
+                                                                }
+                                                            },
+                                                            _ => todo!("expected a tuple with name, docs and type"),
+                                                        }
+                                                    },
                                                 },
-                                                _ => todo!("expected a tuple for each field")
+                                                _ => todo!("expected inner array element in outer array"),
                                             }
-                                            // let ((name_key,name),(docs_key, docs),(type_key, ty)) = parse_array_of_string_string_tuple_and_string_map_tuple_and_string_string_tuple(&field_expr);
-                                            // TODO: assert correct keys
-                                            // arr.push((name,docs,ty));
                                         }
-                                        Some((tag.to_string(), arr))
-                                    },
+                                        Some((tag, result))
+                                    }
                                 },
                                 _ => todo!("expected an array expression following the tag"),
                             }
@@ -400,7 +413,7 @@ pub fn generate_model_from_tuple(input: TokenStream) -> TokenStream {
                                     (Some(name_expr),Some(fields_expr), None) => {
                                         match parse_array_with_name_and_documentation_tuple(&name_expr) {
                                             Some((n, dm)) => {
-                                                let opt_fields = parse_tuple_with_string_and_array_of_name_and_documentation_tuples(&fields_expr);
+                                                let opt_fields = parse_tuple_with_string_and_array_of_array_of_name_and_documentation_and_type_tuples(&fields_expr);
 
                                                 println!("🚀🚀🚀 compiling a RECORD type with fields: {:?}", opt_fields);
                                                 let fields = match opt_fields {
@@ -409,8 +422,7 @@ pub fn generate_model_from_tuple(input: TokenStream) -> TokenStream {
                                                             "fields" => {
                                                                 println!("🚀🚀🚀 compiling fields: {:?}", field_name_docs);
                                                                 let mut fields : Vec<metamodel::FieldDeclaration> = vec![];
-                                                                for (name, docs) in field_name_docs.iter() {
-                                                                    let ty = "ID";
+                                                                for (name, docs, ty) in field_name_docs.iter() {
                                                                     println!("🚀🚀🚀 compiling field: {:?} {:?} {:?}", name, docs, ty);
                                                                     let fd = metamodel::FieldDeclaration::new(
                                                                             to_metamodel_name(name),
