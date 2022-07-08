@@ -36,6 +36,46 @@ Many of its features are turned off by default, and must be enabled via feature 
 
 The latter is very helpful. With the `Debug` trait defined in `extra-traits` you have a chance to print and figure out the AST that the macro is getting as input.
 
+## Approaches
+
+### 1: Generate code from inline metamodel AST (`generate_data_structures!`)
+The first approach.
+
+The idea was to pass a meta-model AST instance to the macro inline and then pass
+it to the code generator.
+
+The problem is that the macro would have to parse the AST expression and instantiate
+it at compile-time to pass it to the code generator since the code-gen works on a metamodel AST,
+not the Rust syntax tree representation for building it.
+
+It did give some insight into how complicated it is to work with `syn` and the Rust syntax tree.
+
+#### Directions for Future Studies
+Perhaps instead of defining the meta-model AST inline as a parameter to the macro, the model
+could be adapted a bit by placing it in a module known to the
+meta-model macro code, so it could be referenced from there.
+
+This would couple the macros tightly to the metamodel but since the model is project specific
+that might be acceptable even if it couples the the macros tightly to not just the model AST but
+the actual model instance for the project.
+
+
+### 2: Tuple-based DSL (`generate_model_from_tuple!`)
+This was the second attempt.
+
+It is a tractable approach. However, the macro code is much more complicated since it has
+to parse s-expression style Rust expressions given to the macro,
+then generate the meta-model AST from that, and then send that to the
+code generator.
+
+The code generator, now residing in the `codegen` module, uses the
+`quote` crate as the dual of `syn` to emit Rust code from the Rust AST.
+
+This approach feels like too much work.
+
+### Directions for Future Studies
+
+
 
 ## Literature
 Read more about Rust macros:

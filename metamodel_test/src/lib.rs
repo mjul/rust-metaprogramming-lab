@@ -12,6 +12,7 @@ mod tests {
         use super::super::*;
 
         #[test]
+        #[ignore]
         fn must_emit_data_structure_for_record_declaration_expr() {
             let no_fields: Vec<FieldDeclaration> = Vec::new();
             let foo_model: Expr = Expr::RecordDeclarationExpr(RecordDeclaration::new(
