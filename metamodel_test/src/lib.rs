@@ -65,6 +65,9 @@ mod tests {
             // If this compiles, we the struct has been generated
             let _actual = Foo {};
 
+            // If this compiles, we the new constructor has been generated
+            let _actual = Foo::new();
+
             assert_eq!(true, true);
         }
 
