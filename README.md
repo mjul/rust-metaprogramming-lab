@@ -82,8 +82,12 @@ The code generator, now residing in the `codegen` module, uses the
 
 This approach feels like too much work.
 
-### Directions for Future Studies
 
+## Directions for Future Studies
+
+- Consider adding a code-generation build step to the Cargo build as way to work around the
+  under-powered macro features of Rust, see
+  [The Cargo Book: Build Scripts](https://doc.rust-lang.org/cargo/reference/build-scripts.html)
 
 
 ## Literature
@@ -91,6 +95,10 @@ Read more about Rust macros:
 
 - [The Little Book of Rust Macros](https://veykril.github.io/tlborm/introduction.html)
 - [Introduction to Procedural Macros in Rust](https://tinkering.xyz/introduction-to-proc-macros/)
+
+Read more about Cargo build scripts:
+- [The Cargo Book: Build Scripts](https://doc.rust-lang.org/cargo/reference/build-scripts.html)
+
 
 ## License
 See the [LICENSE](./LICENSE) file.
