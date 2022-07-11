@@ -100,12 +100,15 @@ pub fn generate_data_structures(input: TokenStream) -> TokenStream {
     .into()
 }
 
-fn parse_lit_string(lit: &syn::Expr) -> Option<String> {
+fn parse_lit_string(lit: &syn::Expr) -> syn::Result<String> {
     match lit {
         syn::Expr::Lit(el) => match el {
             syn::ExprLit { attrs: _, lit } => match lit {
-                syn::Lit::Str(s) => Some(s.value()),
-                _ => todo!("parse_lit_string: Expected a lit str."),
+                syn::Lit::Str(s) => syn::Result::Ok(s.value()),
+                _ => syn::Result::Err(syn::Error::new_spanned(
+                    el,
+                    "Expected a Lit str expression.",
+                )),
             },
         },
         _ => todo!("parse_lit_string: Expected a Lit expression"),
@@ -126,15 +129,26 @@ fn parse_tuple_string_string(tup: &syn::Expr) -> syn::Result<(String, String)> {
                         let k = parse_lit_string(key_expr);
                         let v = parse_lit_string(val_expr);
                         match (k, v) {
-                            (Some(key), Some(val)) => syn::Result::Ok((key, val)),
-                            _ => syn::Result::Err(syn::Error::new_spanned(te, "Expected a Tuple of two string literals.")),
+                            (syn::Result::Ok(key), syn::Result::Ok(val)) => {
+                                syn::Result::Ok((key, val))
+                            }
+                            _ => syn::Result::Err(syn::Error::new_spanned(
+                                te,
+                                "Expected a Tuple of two string literals.",
+                            )),
                         }
                     }
-                    _ => syn::Result::Err(syn::Error::new_spanned(te, "Expected a Tuple of two strings.")),
+                    _ => syn::Result::Err(syn::Error::new_spanned(
+                        te,
+                        "Expected a Tuple of two strings.",
+                    )),
                 }
             }
         },
-        _ => syn::Result::Err(syn::Error::new_spanned(tup, "parse_tuple_string_string: expected a Tuple expression")),
+        _ => syn::Result::Err(syn::Error::new_spanned(
+            tup,
+            "parse_tuple_string_string: expected a Tuple expression",
+        )),
     }
 }
 
@@ -159,14 +173,15 @@ fn parse_array_of_string_string_tuples(arr: &syn::Expr) -> Option<Vec<(String, S
 /// Parse a Tuple expressions that has a string and a map as an Array of (key,value)-pairs)
 fn parse_tuple_string_map(tup: &syn::Expr) -> Option<(String, HashMap<String, String>)> {
     match tup {
-        syn::Expr::Tuple(te) => match te {
-            syn::ExprTuple {
-                paren_token: _,
-                attrs: _,
-                elems,
-            } => {
-                let mut i = elems.iter();
-                match (i.next(), i.next(), i.next()) {
+        syn::Expr::Tuple(te) => {
+            match te {
+                syn::ExprTuple {
+                    paren_token: _,
+                    attrs: _,
+                    elems,
+                } => {
+                    let mut i = elems.iter();
+                    match (i.next(), i.next(), i.next()) {
                     (Some(key_expr), Some(val_expr), None) => {
                         let key_str = parse_lit_string(key_expr);
                         let val_pairs = parse_array_of_string_string_tuples(val_expr);
@@ -182,14 +197,15 @@ fn parse_tuple_string_map(tup: &syn::Expr) -> Option<(String, HashMap<String, St
                             _ => None,
                         };
                         match (key_str, val_map) {
-                            (Some(key), Some(val)) => Some((key, val)),
+                            (syn::Result::Ok(key), Some(val)) => Some((key, val)),
                             _ => None,
                         }
                     }
                     _ => todo!("parse_tuple_string_map: Expected a string key and a map of string pairs."),
                 }
+                }
             }
-        },
+        }
         _ => todo!("parse_array_of_string_string_tuples: Expected a Tuple expression"),
     }
 }
@@ -263,6 +279,13 @@ fn parse_array_with_name_and_documentation_tuple(
     }
 }
 
+/// Create an error for a syn::Expr that includes an (inner) error. This is useful for providing context for parsing errors.
+fn combined_error(expr: &syn::Expr, message: &str, other_error: syn::Error) -> syn::Error {
+    let mut err = syn::Error::new_spanned(expr, message);
+    err.combine(other_error);
+    err
+}
+
 /// Parse a tuple of (tag, string) where the tag must match the given tag.
 fn parse_tuple_with_tagged_string(tag: &str, expr: &syn::Expr) -> syn::Result<String> {
     match parse_tuple_string_string(&expr) {
@@ -273,12 +296,16 @@ fn parse_tuple_with_tagged_string(tag: &str, expr: &syn::Expr) -> syn::Result<St
                 syn::Result::Err(syn::Error::new_spanned(expr, "Did not find expected tag."))
             }
         }
-        Result::Err(_e) => todo!("not a tuple of (key,value) strings!"),
+        Result::Err(inner) => syn::Result::Err(combined_error(
+            expr,
+            "not a tuple of (key,value) strings!",
+            inner,
+        )),
     }
 }
 
 /// Parse a documentation tuple, e.g.: ("documentation", [("label", "ID"), ("description", "The unique Bar entity ID.")])
-fn parse_documentation_tuple(expr: &syn::Expr) -> Option<HashMap<String,String>> {
+fn parse_documentation_tuple(expr: &syn::Expr) -> Option<HashMap<String, String>> {
     let docs_pair = parse_tuple_string_map(expr);
     let docs_map = match docs_pair {
         Some(dp) => get_named_value_from_pair("documentation", dp),
@@ -289,7 +316,7 @@ fn parse_documentation_tuple(expr: &syn::Expr) -> Option<HashMap<String,String>>
 
 fn parse_tuple_with_string_and_array_of_array_of_name_and_documentation_and_type_tuples(
     expr: &syn::Expr,
-) -> Option<(String, Vec<(String, HashMap<String, String>, String)>)> {
+) -> syn::Result<(String, Vec<(String, HashMap<String, String>, String)>)> {
     match expr {
         syn::Expr::Tuple(syn::ExprTuple {
             attrs: _,
@@ -302,7 +329,7 @@ fn parse_tuple_with_string_and_array_of_array_of_name_and_documentation_and_type
                     println!("🚀🚀🚀 tag_expr = {:?}", tag_expr);
                     let opt_tag = parse_lit_string(tag_expr);
                     match opt_tag {
-                        Some(tag) => {
+                        syn::Result::Ok(tag) => {
                             println!("🚀🚀🚀 outer_array_expr = {:?}", outer_array_expr);
                             match outer_array_expr {
                                 syn::Expr::Array(ae) => match ae {
@@ -344,23 +371,21 @@ fn parse_tuple_with_string_and_array_of_array_of_name_and_documentation_and_type
                                                 _ => todo!("expected inner array element in outer array"),
                                             }
                                         }
-                                        Some((tag, result))
+                                        syn::Result::Ok((tag, result))
                                     }
                                 },
                                 _ => todo!("expected an array expression following the tag"),
                             }
                         },
-                        None => todo!("expected a literal string tag as first element of tuple: (tag, [name-doc-tuples...])"),
+                        syn::Result::Err(e) => syn::Result::Err(combined_error(tag_expr, "expected a literal string tag as first element of tuple: (tag, [name-doc-tuples...])", e))
                     }
                 }
                 _ => todo!("expected tuple of two elements: (tag, [name-doc-tuples...])"),
             }
         }
-        _ => None,
+        _ => syn::Result::Err(syn::Error::new_spanned(expr, "Expected a Tuple expression")),
     }
 }
-
-
 
 /// Create a metamodel Name object from a string
 fn to_metamodel_name(name: &str) -> metamodel::Name {
@@ -386,7 +411,7 @@ pub fn generate_model_from_tuple(input: TokenStream) -> TokenStream {
     let item: syn::Expr = syn::parse(input).expect("failed to parse input");
     println!("🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀 running macro: generate_model_from_tuple...");
 
-    let ast : Result<metamodel::Expr> = match item {
+    let ast: Result<metamodel::Expr> = match item {
         syn::Expr::Tuple(syn::ExprTuple {
             attrs: _,
             paren_token: _,
@@ -398,7 +423,7 @@ pub fn generate_model_from_tuple(input: TokenStream) -> TokenStream {
                     println!("🚀🚀🚀 tag_expr    = {:?}", tag_expr);
                     let opt_tag = parse_lit_string(tag_expr);
                     match opt_tag {
-                        Some(tag) => match tag.as_str() {
+                        syn::Result::Ok(tag) => match tag.as_str() {
                             "record" => {
                                 println!("🚀🚀🚀 compiling a RECORD type!");
                                 match (expr1, expr2, expr3) {
@@ -409,7 +434,7 @@ pub fn generate_model_from_tuple(input: TokenStream) -> TokenStream {
 
                                                 println!("🚀🚀🚀 compiling a RECORD type with fields: {:?}", opt_fields);
                                                 let fields = match opt_fields {
-                                                    Some((tag, field_name_docs)) => {
+                                                    syn::Result::Ok((tag, field_name_docs)) => {
                                                         match tag.as_str() {
                                                             "fields" => {
                                                                 println!("🚀🚀🚀 compiling fields: {:?}", field_name_docs);
@@ -454,7 +479,7 @@ pub fn generate_model_from_tuple(input: TokenStream) -> TokenStream {
                             }
                             _ => todo!("unknown tag"),
                         },
-                        None => {
+                        syn::Result::Err(_e) => {
                             todo!("No literal string tag found as first element of first tuple.")
                         }
                     }
@@ -471,7 +496,6 @@ pub fn generate_model_from_tuple(input: TokenStream) -> TokenStream {
         Result::Ok(r) => codegen::generate_code_for_meta_model(r),
         Err(e) => e.to_compile_error().into(),
     }
-
 }
 
 /*
