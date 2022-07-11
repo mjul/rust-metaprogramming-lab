@@ -266,12 +266,19 @@ fn parse_array_with_name_and_documentation_tuple(
 
                         match (name, docs_map) {
                             (syn::Result::Ok(n), syn::Result::Ok(dm)) => syn::Result::Ok((n, dm)),
-                            (syn::Result::Err(e), _) => syn::Result::Err(combined_error(expr, "Failed to parse name: expected (\"name\", \"value\") pair.", e)),
-                            (_, syn::Result::Err(e)) => syn::Result::Err(combined_error(expr, "Failed to parse documentation: expected (\"documentation\", [...]) pair.", e)),
-                            _ => todo!("Exxxrr"),
+                            (syn::Result::Err(e), syn::Result::Ok(_)) => syn::Result::Err(combined_error(head, "Failed to parse name: expected (\"name\", \"value\") pair.", e)),
+                            (syn::Result::Ok(_), syn::Result::Err(e)) => syn::Result::Err(combined_error(tail, "Failed to parse documentation: expected (\"documentation\", [...]) pair.", e)),
+                            (syn::Result::Err(en), syn::Result::Err(ed)) => {
+                                let err_name = combined_error(head, "Failed to parse name: expected (\"name\", \"value\") pair.", en);
+                                let err_docs = combined_error(tail, "Failed to parse documentation: expected (\"documentation\", [...]) pair.", ed);
+                                let mut combined = syn::Error::new_spanned(expr,  "Failed to parse name and documentation");
+                                combined.combine(err_name);
+                                combined.combine(err_docs);
+                                syn::Result::Err(combined)
+                            },
                         }
                     }
-                    _ => todo!("Error while parsing array with name and documentation (not a name, documentation array)."),
+                    _ => syn::Result::Err(syn::Error::new_spanned(expr, "Error while parsing array with name and documentation (not a name, documentation array).")),
                 }
             }
         },
@@ -368,6 +375,7 @@ fn parse_tuple_with_string_and_array_of_array_of_name_and_documentation_and_type
                                                                 println!("🚀🚀🚀 >>> opt_docs = {:?}", opt_docs);
                                                                 let opt_type = parse_tuple_with_tagged_string("type", &type_expr);
                                                                 println!("🚀🚀🚀 >>> opt_type = {:?}", opt_type);
+
                                                                 match (opt_name, opt_docs, opt_type) {
                                                                     // TODO: error reporting
                                                                     (syn::Result::Ok(name), syn::Result::Ok(docs), syn::Result::Ok(ty)) => {result.push((name, docs, ty));},
