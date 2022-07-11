@@ -171,7 +171,7 @@ fn parse_array_of_string_string_tuples(arr: &syn::Expr) -> Option<Vec<(String, S
 }
 
 /// Parse a Tuple expressions that has a string and a map as an Array of (key,value)-pairs)
-fn parse_tuple_string_map(tup: &syn::Expr) -> Option<(String, HashMap<String, String>)> {
+fn parse_tuple_string_map(tup: &syn::Expr) -> syn::Result<(String, HashMap<String, String>)> {
     match tup {
         syn::Expr::Tuple(te) => {
             match te {
@@ -197,8 +197,8 @@ fn parse_tuple_string_map(tup: &syn::Expr) -> Option<(String, HashMap<String, St
                             _ => None,
                         };
                         match (key_str, val_map) {
-                            (syn::Result::Ok(key), Some(val)) => Some((key, val)),
-                            _ => None,
+                            (syn::Result::Ok(key), Some(val)) => syn::Result::Ok((key, val)),
+                            _ => syn::Result::Err(syn::Error::new_spanned(te, "did not find a tuple of a string and an a value map")),
                         }
                     }
                     _ => todo!("parse_tuple_string_map: Expected a string key and a map of string pairs."),
@@ -265,9 +265,9 @@ fn parse_array_with_name_and_documentation_tuple(
                         println!("🚀🚀🚀 docs_map: {:?}", docs_map);
 
                         match (name, docs_map) {
-                            (syn::Result::Err(e), _) => { let mut e2 = e.clone(); e2.combine(syn::Error::new_spanned(expr, "Failed to parse name: expected (\"name\", \"value\") pair.")); syn::Result::Err(e2) },
-                             //syn::Result::Err(e.extend(syn::Error::new(e.span(), ))),
-                            (syn::Result::Ok(n), Some(dm)) => syn::Result::Ok((n, dm)),
+                            (syn::Result::Ok(n), syn::Result::Ok(dm)) => syn::Result::Ok((n, dm)),
+                            (syn::Result::Err(e), _) => syn::Result::Err(combined_error(expr, "Failed to parse name: expected (\"name\", \"value\") pair.", e)),
+                            (_, syn::Result::Err(e)) => syn::Result::Err(combined_error(expr, "Failed to parse documentation: expected (\"documentation\", [...]) pair.", e)),
                             _ => todo!("Exxxrr"),
                         }
                     }
@@ -305,11 +305,21 @@ fn parse_tuple_with_tagged_string(tag: &str, expr: &syn::Expr) -> syn::Result<St
 }
 
 /// Parse a documentation tuple, e.g.: ("documentation", [("label", "ID"), ("description", "The unique Bar entity ID.")])
-fn parse_documentation_tuple(expr: &syn::Expr) -> Option<HashMap<String, String>> {
+fn parse_documentation_tuple(expr: &syn::Expr) -> syn::Result<HashMap<String, String>> {
     let docs_pair = parse_tuple_string_map(expr);
     let docs_map = match docs_pair {
-        Some(dp) => get_named_value_from_pair("documentation", dp),
-        None => todo!("Invalid documentation tuple"),
+        syn::Result::Ok(dp) => match get_named_value_from_pair("documentation", dp) {
+            Some(dm) => {
+                match (dm.contains_key("label"), dm.contains_key("description")) {
+                    (true, true) => syn::Result::Ok(dm),
+                    (false, true) => syn::Result::Err(syn::Error::new_spanned(expr, "Expected documentation map to include a \"label\" tuple: (\"label\", ...)")),
+                    (true, false) => syn::Result::Err(syn::Error::new_spanned(expr, "Expected documentation map to include a \"description\" tuple: (\"description\", ...)")),
+                    _ => syn::Result::Err(syn::Error::new_spanned(expr, "Expected documentation map to include a \"label\"  and a \"description\" tuple")),
+                }
+            }
+            None => syn::Result::Err(syn::Error::new_spanned(expr, "Could not parse documentation tuple, first element of the tuple must be \"documentation\".")),
+        },
+        syn::Result::Err(e) => syn::Result::Err(combined_error(expr, "Invalid documentation tuple", e)),
     };
     docs_map
 }
@@ -360,7 +370,7 @@ fn parse_tuple_with_string_and_array_of_array_of_name_and_documentation_and_type
                                                                 println!("🚀🚀🚀 >>> opt_type = {:?}", opt_type);
                                                                 match (opt_name, opt_docs, opt_type) {
                                                                     // TODO: error reporting
-                                                                    (syn::Result::Ok(name), Some(docs), syn::Result::Ok(ty)) => {result.push((name, docs, ty));},
+                                                                    (syn::Result::Ok(name), syn::Result::Ok(docs), syn::Result::Ok(ty)) => {result.push((name, docs, ty));},
                                                                     _ => todo!("invalid name, docs, or type")
                                                                 }
                                                             },
