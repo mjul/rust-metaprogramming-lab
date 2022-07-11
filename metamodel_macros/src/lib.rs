@@ -112,7 +112,7 @@ fn parse_lit_string(lit: &syn::Expr) -> Option<String> {
     }
 }
 
-fn parse_tuple_string_string(tup: &syn::Expr) -> Option<(String, String)> {
+fn parse_tuple_string_string(tup: &syn::Expr) -> syn::Result<(String, String)> {
     match tup {
         syn::Expr::Tuple(te) => match te {
             syn::ExprTuple {
@@ -126,15 +126,15 @@ fn parse_tuple_string_string(tup: &syn::Expr) -> Option<(String, String)> {
                         let k = parse_lit_string(key_expr);
                         let v = parse_lit_string(val_expr);
                         match (k, v) {
-                            (Some(key), Some(val)) => Some((key, val)),
-                            _ => None,
+                            (Some(key), Some(val)) => syn::Result::Ok((key, val)),
+                            _ => syn::Result::Err(syn::Error::new_spanned(te, "Expected a Tuple of two string literals.")),
                         }
                     }
-                    _ => todo!("parse_tuple_string_string: expected a Tuple of two string literals."),
+                    _ => syn::Result::Err(syn::Error::new_spanned(te, "Expected a Tuple of two strings.")),
                 }
             }
         },
-        _ => todo!("parse_tuple_string_string: expected a Tuple expression"),
+        _ => syn::Result::Err(syn::Error::new_spanned(tup, "parse_tuple_string_string: expected a Tuple expression")),
     }
 }
 
@@ -229,7 +229,7 @@ mod tests {
 /// Parse an Array with a name and an documentation tuple, e.g. [("name", "foo"), ("documentation", [("label", "Foo"), ("description", "Description of Foo")])]
 fn parse_array_with_name_and_documentation_tuple(
     expr: &syn::Expr,
-) -> Option<(String, HashMap<String, String>)> {
+) -> syn::Result<(String, HashMap<String, String>)> {
     match expr {
         syn::Expr::Array(a) => match a {
             syn::ExprArray {
@@ -249,8 +249,9 @@ fn parse_array_with_name_and_documentation_tuple(
                         println!("🚀🚀🚀 docs_map: {:?}", docs_map);
 
                         match (name, docs_map) {
-                            (syn::Result::Err(e), _) => todo!("failed to parse name"), //syn::Result::Err(e.extend(syn::Error::new(e.span(), "Invalid tuple, expected (\"name\", \"value\") pair."))),
-                            (syn::Result::Ok(n), Some(dm)) => Some((n, dm)),
+                            (syn::Result::Err(e), _) => { let mut e2 = e.clone(); e2.combine(syn::Error::new_spanned(expr, "Failed to parse name: expected (\"name\", \"value\") pair.")); syn::Result::Err(e2) },
+                             //syn::Result::Err(e.extend(syn::Error::new(e.span(), ))),
+                            (syn::Result::Ok(n), Some(dm)) => syn::Result::Ok((n, dm)),
                             _ => todo!("Exxxrr"),
                         }
                     }
@@ -265,14 +266,14 @@ fn parse_array_with_name_and_documentation_tuple(
 /// Parse a tuple of (tag, string) where the tag must match the given tag.
 fn parse_tuple_with_tagged_string(tag: &str, expr: &syn::Expr) -> syn::Result<String> {
     match parse_tuple_string_string(&expr) {
-        Some((k, v)) => {
+        Result::Ok((k, v)) => {
             if tag == k {
                 syn::Result::Ok(v)
             } else {
                 syn::Result::Err(syn::Error::new_spanned(expr, "Did not find expected tag."))
             }
         }
-        _ => todo!("not a tuple of (key,value) strings!"),
+        Result::Err(_e) => todo!("not a tuple of (key,value) strings!"),
     }
 }
 
@@ -385,7 +386,7 @@ pub fn generate_model_from_tuple(input: TokenStream) -> TokenStream {
     let item: syn::Expr = syn::parse(input).expect("failed to parse input");
     println!("🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀 running macro: generate_model_from_tuple...");
 
-    let ast = match item {
+    let ast : Result<metamodel::Expr> = match item {
         syn::Expr::Tuple(syn::ExprTuple {
             attrs: _,
             paren_token: _,
@@ -403,7 +404,7 @@ pub fn generate_model_from_tuple(input: TokenStream) -> TokenStream {
                                 match (expr1, expr2, expr3) {
                                     (Some(name_expr),Some(fields_expr), None) => {
                                         match parse_array_with_name_and_documentation_tuple(&name_expr) {
-                                            Some((n, dm)) => {
+                                            Result::Ok((n, dm)) => {
                                                 let opt_fields = parse_tuple_with_string_and_array_of_array_of_name_and_documentation_and_type_tuples(&fields_expr);
 
                                                 println!("🚀🚀🚀 compiling a RECORD type with fields: {:?}", opt_fields);
@@ -429,15 +430,21 @@ pub fn generate_model_from_tuple(input: TokenStream) -> TokenStream {
                                                     _ => todo!("invalid fields declaration"),
                                                 };
 
-                                                metamodel::Expr::RecordDeclarationExpr(
+                                                Result::Ok(metamodel::Expr::RecordDeclarationExpr(
                                                         metamodel::RecordDeclaration::new(
-                                                            to_metamodel_name(&n),
-                                                            to_metamodel_documentation(&dm),
-                                                            fields,
+                                                                to_metamodel_name(&n),
+                                                        to_metamodel_documentation(&dm),
+                                                        fields,
                                                         ),
-                                                )
+                                                ))
                                             },
-                                            None => todo!("could not parse name and documentation tuple"),
+                                            Result::Err(e) => {
+                                                // todo!("could not parse name and documentation tuple"),
+                                                //let mut err = syn::Error::new_spanned(item, "could not parse name and documentation tuple");
+                                                //&err.combine(_e);
+                                                syn::Result::Err(e)
+                                            }
+
                                         }
                                     },
                                     (Some(_),None, None) => todo!("invalid record declaration (fields missing), expected tuple of three elements, (tag, [name...], (fields [...]))"),
@@ -460,7 +467,11 @@ pub fn generate_model_from_tuple(input: TokenStream) -> TokenStream {
 
     println!("🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀 macro input parsing completed...");
 
-    codegen::generate_code_for_meta_model(ast)
+    match ast {
+        Result::Ok(r) => codegen::generate_code_for_meta_model(r),
+        Err(e) => e.to_compile_error().into(),
+    }
+
 }
 
 /*
