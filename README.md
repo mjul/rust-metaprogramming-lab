@@ -36,6 +36,16 @@ Many of its features are turned off by default, and must be enabled via feature 
 
 The latter is very helpful. With the `Debug` trait defined in `extra-traits` you have a chance to print and figure out the AST that the macro is getting as input.
 
+`syn::Result` is useful and provides a way to pinpoint compile errors to the specific expressions that failed to parse.
+You can use the `Into` trait to turn an error into a `TokenStream` to return the compile error from the macro like so:
+
+```rust
+    match ast {
+        Result::Ok(r) => codegen::generate_code_for_meta_model(r),
+        Err(e) => e.to_compile_error().into(),
+    }
+```
+
 ## Approaches
 
 ### 1: Generate code from inline metamodel AST (`generate_data_structures!`)
