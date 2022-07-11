@@ -101,10 +101,15 @@ mod tests {
                 )
             ));
 
-            // If this compiles, we the struct has been generated
-            let actual = Bar { id: 1 };
+            // If this compiles, the struct has been generated
+            let actual_raw = Bar { id: 1 };
 
-            assert_eq!(1, actual.id);
+            // If this compiles, the constructor has been generated
+            let actual_via_new = Bar::new(1);
+
+            assert_eq!(1, actual_raw.id);
+            assert_eq!(1, actual_via_new.id);
+
         }
 
         #[test]
@@ -161,6 +166,13 @@ mod tests {
 
             assert_eq!(1, actual.id);
             assert_eq!("1970-01-01", actual.birthday);
+
+            // If this compiles, we the new constructor been generated
+            let actual = Baz::new(1, String::from("1970-01-01"));
+
+            assert_eq!(1, actual.id);
+            assert_eq!("1970-01-01", actual.birthday);
+
         }
     }
 }

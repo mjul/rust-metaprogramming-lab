@@ -48,7 +48,16 @@ The problem is that the macro would have to parse the AST expression and instant
 it at compile-time to pass it to the code generator since the code-gen works on a metamodel AST,
 not the Rust syntax tree representation for building it.
 
+This shows a limitation of Rust: it does not have the whole language available all the time, it works in discrete units
+of *crates*. We can appreciate that it makes it much easier to build the compiler (*e.g.* reasoning about traits),
+but it is a trade-off.
+
+Trying to make the meta-model available at compile-time by making it a `const` expression
+is also the reason why the AST enums take `&'static str` and not owned Strings.
+
 It did give some insight into how complicated it is to work with `syn` and the Rust syntax tree.
+
+See the [tests](./metamodel_test/src/lib.rs) and the [macro code](./metamodel_macros/src/lib.rs).
 
 #### Directions for Future Studies
 Perhaps instead of defining the meta-model AST inline as a parameter to the macro, the model

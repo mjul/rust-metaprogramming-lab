@@ -13,56 +13,108 @@ pub fn generate_code_for_meta_model(ast: metamodel::Expr) -> TokenStream {
             } => match name {
                 metamodel::Name::Literal(name) => {
                     let struct_ident: syn::Ident = syn::parse_str(&name).unwrap();
-                    let struct_path_ident: syn::Path = syn::parse_str(&name).unwrap();
+                    struct FieldInfo {
+                        ident: syn::Ident,
+                        ty: syn::Type,
+                        field: syn::Field,
+                    }
+                    let field_infos: Vec<FieldInfo> = fields
+                        .iter()
+                        .map(|fd| {
+                            let metamodel::Name::Literal(field_name) = &fd.name;
+                            let field_ident: syn::Ident =
+                                syn::parse_str(field_name.as_str()).unwrap();
+                            let field_type = match &fd.field_type {
+                                // pick the corresponding Rust data types
+                                metamodel::Type::Primitive(metamodel::PrimitiveType::Id) => "u64",
+                                metamodel::Type::Primitive(metamodel::PrimitiveType::LocalDate) => {
+                                    "String"
+                                }
+                            };
+                            let field_type_path = syn::Type::Path(syn::TypePath {
+                                qself: None,
+                                path: syn::parse_str(field_type).unwrap(),
+                            });
+
+                            let field: syn::Field = syn::Field {
+                                attrs: vec![],
+                                vis: syn::Visibility::Public(syn::VisPublic {
+                                    pub_token: syn::token::Pub::default(),
+                                }),
+                                ident: Some(field_ident.clone()),
+                                colon_token: Some(syn::token::Colon::default()),
+                                ty: field_type_path.clone(),
+                            };
+
+                            FieldInfo {
+                                ident: field_ident,
+                                ty: field_type_path,
+                                field,
+                            }
+                        })
+                        .collect();
 
                     // Fields
                     let mut pnames: syn::punctuated::Punctuated<syn::Field, syn::Token![,]> =
                         syn::punctuated::Punctuated::new();
-                    for fd in fields.iter() {
-                        let metamodel::Name::Literal(field_name) = &fd.name;
-                        let field_type = match &fd.field_type {
-                            // pick the corresponding Rust data types
-                            metamodel::Type::Primitive(metamodel::PrimitiveType::Id) => "u64",
-                            metamodel::Type::Primitive(metamodel::PrimitiveType::LocalDate) => {
-                                "String"
-                            }
-                        };
-
-                        // experimental
-                        let field_ident_path: syn::Path = syn::parse_str("foobar").unwrap();
-                        let field_expr_path: syn::ExprPath = syn::parse_str("i32").unwrap();
-                        let i32_path: syn::Path = syn::parse_str("i32").unwrap();
-
-                        // build FieldValue instance  { attrs, member, colon_token, expr }
-                        let fv_member_ident: syn::Ident =
-                            syn::parse_str(field_name.as_str()).unwrap();
-                        //let fv_member = syn::Member::Named(fv_member_ident);
-                        let fv_colon = Some(syn::token::Colon::default());
-                        let fv_expr_path: syn::Path = syn::parse_str(field_type).unwrap();
-                        //let fv_expr = syn::Expr::Path(syn::ExprPath {attrs:  vec![], qself: None, path: fv_expr_path});
-                        //let fv = syn::FieldValue { attrs: vec![], member:fv_member, colon_token: fv_colon, expr: fv_expr};
-
-                        let field: syn::Field = syn::Field {
-                            attrs: vec![],
-                            vis: syn::Visibility::Public(syn::VisPublic {
-                                pub_token: syn::token::Pub::default(),
-                            }),
-                            ident: Some(fv_member_ident),
-                            colon_token: fv_colon,
-                            ty: syn::Type::Path(syn::TypePath {
-                                qself: None,
-                                path: fv_expr_path,
-                            }),
-                        };
-                        pnames.push(field);
+                    for fi in field_infos.iter() {
+                        pnames.push(fi.field.clone());
                     }
                     let struct_fields = syn::Fields::Named(syn::FieldsNamed {
                         brace_token: syn::token::Brace::default(),
                         named: pnames,
                     });
 
-                    //let struct_expr = syn::ExprStruct { attrs: vec![], path: struct_path_ident, brace_token: syn::token::Brace::default(), fields: struct_fields };
-                    quote!( struct #struct_ident #struct_fields )
+                    let mut new_inputs: syn::punctuated::Punctuated<syn::FnArg, syn::Token![,]> =
+                        syn::punctuated::Punctuated::new();
+                    for fi in field_infos.iter() {
+                        new_inputs.push(syn::FnArg::Typed(syn::PatType {
+                            attrs: vec![],
+                            pat: Box::new(syn::Pat::Ident(syn::PatIdent {
+                                attrs: vec![],
+                                by_ref: None,
+                                mutability: None,
+                                ident: fi.ident.clone(),
+                                subpat: None,
+                            })),
+                            colon_token: syn::token::Colon::default(),
+                            ty: Box::new(fi.ty.clone()),
+                        }))
+                    }
+
+                    let mut new_struct_fields: syn::punctuated::Punctuated<
+                        syn::FieldValue,
+                        syn::Token![,],
+                    > = syn::punctuated::Punctuated::new();
+                    for fi in field_infos.iter() {
+                        let mut ps: syn::punctuated::Punctuated<syn::PathSegment, syn::Token![::]> =
+                            syn::punctuated::Punctuated::new();
+                        ps.push(syn::PathSegment {
+                            ident: fi.ident.clone(),
+                            arguments: syn::PathArguments::None,
+                        });
+                        new_struct_fields.push(syn::FieldValue {
+                            attrs: vec![],
+                            member: syn::Member::Named(fi.ident.clone()),
+                            colon_token: Some(syn::token::Colon::default()),
+                            expr: syn::Expr::Path(syn::ExprPath {
+                                attrs: vec![],
+                                qself: None,
+                                path: syn::Path {
+                                    leading_colon: None,
+                                    segments: ps,
+                                },
+                            }),
+                        });
+                    }
+
+                    quote!(
+                            struct #struct_ident #struct_fields
+
+                            impl #struct_ident {
+                                pub fn new(#new_inputs) -> Self { Self { #new_struct_fields } }
+                            }
+                    )
                 }
             },
         },
@@ -72,4 +124,17 @@ pub fn generate_code_for_meta_model(ast: metamodel::Expr) -> TokenStream {
     println!("🚀🚀🚀 code: {:?}", code);
 
     code.into()
+}
+
+#[cfg(test)]
+mod playground_tests {
+    #[test]
+    fn new() {
+        struct Foo {
+            a: i32,
+        }
+
+        let ast: syn::ItemFn = syn::parse_str("pub fn Foo(x: i32) -> Foo { Foo { a:x } }").unwrap();
+        dbg!(ast);
+    }
 }
