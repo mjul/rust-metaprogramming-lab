@@ -8,3 +8,5 @@ edition = "2021"
 [dependencies]
 metamodel = { version = "0.1.0", path = "../metamodel" }
 metamodel_macros = { version = "0.1.0", path = "../metamodel_macros" }
+
+fltk = "^1.2"

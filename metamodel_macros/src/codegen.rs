@@ -107,7 +107,6 @@ pub fn generate_code_for_meta_model(ast: metamodel::Expr) -> TokenStream {
                         });
                     }
 
-                    let record_name = name;
                     let record_doc_label = documentation.label;
                     let record_doc_description = documentation.description;
 
@@ -121,7 +120,6 @@ pub fn generate_code_for_meta_model(ast: metamodel::Expr) -> TokenStream {
                             impl Into<metamodel::Displayable> for #struct_ident {
                                 fn into(self) -> metamodel::Displayable {
                                     metamodel::Displayable {
-                                        name: Name::Literal(String::from(#record_name)),
                                         documentation: Documentation::new(#record_doc_label, #record_doc_description),
                                         values: vec![]
                                     }

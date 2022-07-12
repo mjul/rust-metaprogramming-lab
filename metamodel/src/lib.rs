@@ -79,7 +79,6 @@ pub enum DisplayableValue {
 // A displayable record
 #[derive(Debug)]
 pub struct Displayable {
-    pub name : Name,
     pub documentation: Documentation,
     pub values : Vec<(DisplayableValue, Documentation)>
 }
