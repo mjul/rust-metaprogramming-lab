@@ -72,7 +72,7 @@ pub enum Expr {
 pub enum DisplayableValue {
     String(String),
     LocalDate(String),
-    Id(i32),
+    Id(u64),
 }
 
 

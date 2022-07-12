@@ -109,6 +109,22 @@ pub fn generate_code_for_meta_model(ast: metamodel::Expr) -> TokenStream {
 
                     let record_doc_label = documentation.label;
                     let record_doc_description = documentation.description;
+                    let record_values = fields.iter().map(|fd| {
+                        let doc_label = &fd.documentation.label;
+                        let doc_desc = &fd.documentation.description;
+                        let field_name = match &fd.name {
+                            metamodel::Name::Literal(x) => x
+                        };
+                        let field_ident : syn::Ident = syn::parse_str(field_name.as_str()).unwrap();
+                        let field_ref = quote!(self.#field_ident);
+
+                        let disp_val = match &fd.field_type {
+                            metamodel::Type::Primitive(metamodel::PrimitiveType::Id) => quote!(metamodel::DisplayableValue::Id(#field_ref)),
+                            metamodel::Type::Primitive(metamodel::PrimitiveType::LocalDate) => quote!(metamodel::DisplayableValue::LocalDate(String::from(#field_ref))),
+                            metamodel::Type::Primitive(metamodel::PrimitiveType::String) => quote!(metamodel::DisplayableValue::String(String::from(#field_ref))),
+                        };
+                        quote!((#disp_val, metamodel::Documentation::new(#doc_label, #doc_desc)))
+                    });
 
                     quote!(
                             struct #struct_ident #struct_fields
@@ -121,7 +137,7 @@ pub fn generate_code_for_meta_model(ast: metamodel::Expr) -> TokenStream {
                                 fn into(self) -> metamodel::Displayable {
                                     metamodel::Displayable {
                                         documentation: Documentation::new(#record_doc_label, #record_doc_description),
-                                        values: vec![]
+                                        values: vec![ #(#record_values),* ],
                                     }
                                 }
                             }
@@ -136,6 +152,7 @@ pub fn generate_code_for_meta_model(ast: metamodel::Expr) -> TokenStream {
     
     code.into()
 }
+
 
 #[cfg(test)]
 mod playground_tests {

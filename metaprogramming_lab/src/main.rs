@@ -71,11 +71,18 @@ fn main() {
     headline.set_label_size(42);
     let mut description = Frame::default().with_label(&disp.documentation.description);
 
-    let mut name_row = Pack::default().with_type(PackType::Horizontal);
-    name_row.set_spacing(20);
-    let mut name_frame = Frame::default().with_size(100, 30).with_label("Name frame:");
-    let mut name_value = Output::default().with_size(500, 30).set_value("Name Here");
-    name_row.end();
+    for (val, doc) in disp.values.iter() {
+        let mut row = Pack::default().with_type(PackType::Horizontal);
+        row.set_spacing(20);
+        let mut row_label = Frame::default().with_size(100, 30).with_label(&doc.label);
+        let v = match &val {
+                    metamodel::DisplayableValue::String(s) => s.clone(),
+                    metamodel::DisplayableValue::LocalDate(s) => s.clone(),
+                    metamodel::DisplayableValue::Id(n) => n.to_string(),
+        };
+        let mut row_value = Output::default().with_size(500, 30).set_value(v.as_str());
+        row.end();
+    }
 
     flex.end();
     wind.end();
