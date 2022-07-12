@@ -2,6 +2,7 @@
 pub enum PrimitiveType {
     Id,
     LocalDate,
+    String,
 }
 
 #[derive(Debug)]

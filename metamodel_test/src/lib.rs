@@ -15,7 +15,7 @@ mod tests {
         #[ignore]
         fn must_emit_data_structure_for_record_declaration_expr() {
             let no_fields: Vec<FieldDeclaration> = Vec::new();
-            let foo_model: Expr = Expr::RecordDeclarationExpr(RecordDeclaration::new(
+            let _foo_model: Expr = Expr::RecordDeclarationExpr(RecordDeclaration::new(
                 Name::Literal(String::from("Foo")),
                 Documentation::new(
                     "Foo Record",
@@ -112,8 +112,8 @@ mod tests {
 
             assert_eq!(1, actual_raw.id);
             assert_eq!(1, actual_via_new.id);
-
         }
+
 
         #[test]
         fn must_emit_data_structure_for_record_declaration_with_two_fields() {
@@ -177,8 +177,86 @@ mod tests {
             assert_eq!("1970-01-01", actual.birthday);
 
         }
-    }
 
+
+        #[test]
+        fn must_emit_data_structure_for_record_declaration_with_all_field_types() {
+            generate_model_from_tuple!((
+                "record",
+                [
+                    ("name", "AllFieldTypes"),
+                    (
+                        "documentation",
+                        [
+                            ("label", "All Field Types"),
+                            (
+                                "description",
+                                "This record has fields of all types."
+                            ),
+                        ],
+                    ),
+                ],
+                (
+                    "fields",
+                    [
+                        [
+                            ("name", "id"),
+                            (
+                                "documentation",
+                                [
+                                    ("label", "ID"),
+                                    ("description", "The unique Entity ID.")
+                                ]
+                            ),
+                            ("type", "ID")
+                        ],
+                        [
+                            ("name", "name"),
+                            (
+                                "documentation",
+                                [
+                                    ("label", "Name"),
+                                    ("description", "The name of this Entity.")
+                                ]
+                            ),
+                            ("type", "String")
+                        ],
+                        [
+                            ("name", "birthday"),
+                            (
+                                "documentation",
+                                [
+                                    ("label", "Birthday"),
+                                    ("description", "The birthday for this Entity.")
+                                ]
+                            ),
+                            ("type", "LocalDate")
+                        ],
+                    ]
+                )
+            ));
+
+            // If this compiles, the struct has been generated
+            let actual = AllFieldTypes {
+                id: 1,
+                name: String::from("Unichs Taim"),
+                birthday: String::from("1970-01-01"),
+            };
+
+            assert_eq!(1, actual.id);
+            assert_eq!("Unichs Taim", actual.name);
+            assert_eq!("1970-01-01", actual.birthday);
+
+            // If this compiles, the new constructor been generated
+            let actual = AllFieldTypes::new(1, String::from("Unichs Taim"), String::from("1970-01-01"));
+
+            assert_eq!(1, actual.id);
+            assert_eq!("Unichs Taim", actual.name);
+            assert_eq!("1970-01-01", actual.birthday);
+        }
+
+
+    }
 
     mod generate_model_from_expression_stream_tests {
         use metamodel::FieldDeclaration;
@@ -218,6 +296,69 @@ mod tests {
         pub fn bug_report() {
             metamodel_macros::this_fails!(1*2*3*7);
         }
+*/
+
+/*
+mod gui_code_generation_tests {
+    use super::super::*;
+
+    // Generate a model in this scope from the macro that works
+    // All macros use the same code-generation back-end, so it is not important which one.
+    generate_model_from_tuple!((
+                "record",
+                [
+                    ("name", "Birth"),
+                    (
+                        "documentation",
+                        [
+                            ("label", "Birth Information"),
+                            (
+                                "description",
+                                "This holds information about a birth."
+                            ),
+                        ],
+                    ),
+                ],
+                (
+                    "fields",
+                    [
+                        [
+                            ("name", "id"),
+                            (
+                                "documentation",
+                                [
+                                    ("label", "ID"),
+                                    ("description", "The unique entity ID.")
+                                ]
+                            ),
+                            ("type", "ID")
+                        ],
+                        [
+                            ("name", "full_name"),
+                            (
+                                "documentation",
+                                [
+                                    ("label", "Full Name"),
+                                    ("description", "The full name of the person")
+                                ]
+                            ),
+                            ("type", "String")
+                        ],
+                        [
+                            ("name", "birthday"),
+                            (
+                                "documentation",
+                                [
+                                    ("label", "Birthday"),
+                                    ("description", "The birthday itself.")
+                                ]
+                            ),
+                            ("type", "LocalDate")
+                        ]
+                    ]
+                )
+            ));
+}
 */
 
 }

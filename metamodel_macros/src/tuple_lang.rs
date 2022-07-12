@@ -319,12 +319,15 @@ fn to_metamodel_documentation(dm: &HashMap<String, String>) -> metamodel::Docume
     metamodel::Documentation::new(dm.get("label").unwrap(), dm.get("description").unwrap())
 }
 
+// TODO: use Into trait
+
 /// Create a metamodel Type object from a string
 fn to_metamodel_type(type_name: &str) -> metamodel::Type {
     match type_name {
         "ID" => metamodel::Type::Primitive(metamodel::PrimitiveType::Id),
         "LocalDate" => metamodel::Type::Primitive(metamodel::PrimitiveType::LocalDate),
-        _ => todo!("unknown type"),
+        "String" => metamodel::Type::Primitive(metamodel::PrimitiveType::String),
+        _ => todo!("unknown type {:?}", type_name),
     }
 }
 
