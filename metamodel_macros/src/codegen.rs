@@ -8,7 +8,7 @@ pub fn generate_code_for_meta_model(ast: metamodel::Expr) -> TokenStream {
         metamodel::Expr::RecordDeclarationExpr(rd) => match rd {
             metamodel::RecordDeclaration {
                 name,
-                documentation: _,
+                documentation,
                 fields,
             } => match name {
                 metamodel::Name::Literal(name) => {
@@ -107,11 +107,25 @@ pub fn generate_code_for_meta_model(ast: metamodel::Expr) -> TokenStream {
                         });
                     }
 
+                    let record_name = name;
+                    let record_doc_label = documentation.label;
+                    let record_doc_description = documentation.description;
+
                     quote!(
                             struct #struct_ident #struct_fields
 
                             impl #struct_ident {
                                 pub fn new(#new_inputs) -> Self { Self { #new_struct_fields } }
+                            }
+
+                            impl Into<metamodel::Displayable> for #struct_ident {
+                                fn into(self) -> metamodel::Displayable {
+                                    metamodel::Displayable {
+                                        name: Name::Literal(String::from(#record_name)),
+                                        documentation: Documentation::new(#record_doc_label, #record_doc_description),
+                                        values: vec![]
+                                    }
+                                }
                             }
                     )
                 }
@@ -120,8 +134,8 @@ pub fn generate_code_for_meta_model(ast: metamodel::Expr) -> TokenStream {
         _ => todo!(),
     };
 
-    println!("🚀🚀🚀 code: {:?}", code);
-
+    println!("🚀🚀🚀 code: {}", code.to_string());
+    
     code.into()
 }
 
@@ -137,3 +151,5 @@ mod playground_tests {
         dbg!(ast);
     }
 }
+
+

@@ -18,8 +18,8 @@ pub enum Name {
 /// Documentation
 #[derive(Debug)]
 pub struct Documentation {
-    label: String,
-    description: String,
+    pub label: String,
+    pub description: String,
 }
 
 impl Documentation {
@@ -64,3 +64,23 @@ pub enum Expr {
     FieldDeclarationExpr(FieldDeclaration),
     RecordDeclarationExpr(RecordDeclaration),
 }
+
+
+
+/// A displayable value
+#[derive(Debug)]
+pub enum DisplayableValue {
+    String(String),
+    LocalDate(String),
+    Id(i32),
+}
+
+
+// A displayable record
+#[derive(Debug)]
+pub struct Displayable {
+    pub name : Name,
+    pub documentation: Documentation,
+    pub values : Vec<(DisplayableValue, Documentation)>
+}
+
