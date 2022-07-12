@@ -80,7 +80,8 @@ fn main() {
                     metamodel::DisplayableValue::LocalDate(s) => s.clone(),
                     metamodel::DisplayableValue::Id(n) => n.to_string(),
         };
-        let mut row_value = Output::default().with_size(500, 30).set_value(v.as_str());
+        let mut row_value = Output::default().with_size(300, 30).set_value(v.as_str());
+        let mut row_desc = Frame::default().with_label(&doc.description).with_align(Align::Right);
         row.end();
     }
 
