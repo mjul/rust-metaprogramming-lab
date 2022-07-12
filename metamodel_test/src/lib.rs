@@ -2,7 +2,7 @@ extern crate metamodel;
 extern crate metamodel_macros;
 
 use metamodel::{Documentation, Expr, FieldDeclaration, Name, RecordDeclaration};
-use metamodel_macros::{generate_data_structures, generate_model_from_tuple};
+use metamodel_macros::{generate_data_structures, generate_model_from_tuple, generate_model_from_expression_stream};
 
 #[cfg(test)]
 mod tests {
@@ -178,4 +178,46 @@ mod tests {
 
         }
     }
+
+
+    mod generate_model_from_expression_stream_tests {
+        use metamodel::FieldDeclaration;
+
+        use super::super::*;
+
+        #[test]
+        #[ignore]
+        fn must_emit_data_structure_for_record_declaration_expr() {
+
+            /*
+            generate_model_from_expression_stream!(
+                    metamodel::Expr::RecordDeclarationExpr(
+                            metamodel::RecordDeclaration::new(
+                                metamodel::Name::Literal(String::from("Foo")),
+                                metamodel::Documentation::new(
+                                    "Foo Record",
+                                    "A Foo is a very important entity with just and ID.",
+                                ),
+                                vec![],
+                            )
+                    )
+            );
+
+            // when Foo has been generated from the model above, the following will work
+            let actual = Foo::new(1);
+            assert_eq!(1, actual.id);
+            
+            */
+
+        }
+    }
+
+/*
+       // This test using the nested macros fails (
+        #[test]
+        pub fn bug_report() {
+            metamodel_macros::this_fails!(1*2*3*7);
+        }
+*/
+
 }

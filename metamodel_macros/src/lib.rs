@@ -93,10 +93,10 @@ pub fn generate_data_structures(input: TokenStream) -> TokenStream {
 
     // TODO: generate some real code, this is just a placeholder
     quote! {
-        struct Foo { id: usize};
-        impl Foo { pub fn new(id:usize) -> Self {
-            Self { id }
-        }
+    struct Foo { id: usize};
+    impl Foo { pub fn new(id:usize) -> Self {
+        Self { id }
+    }
     } }
     .into()
 }
@@ -114,3 +114,46 @@ pub fn generate_model_from_tuple(input: TokenStream) -> TokenStream {
     println!("🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀 macro completed.");
     result
 }
+
+#[proc_macro]
+pub fn eval(input: TokenStream) -> TokenStream {
+    input.into()
+}
+
+#[proc_macro]
+pub fn generate_model_from_expression_stream(input: TokenStream) -> TokenStream {
+    println!("🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀 running macro: generate_model_from_expression_stream...");
+
+    println!("🔍 parsing tuple expression...");
+    let mut result: TokenStream = TokenStream::new();
+    result.extend::<TokenStream>("let model : metamodel::Expr =".parse().unwrap());
+    result.extend(input);
+    result.extend::<TokenStream>(";".parse().unwrap());
+    result.extend::<TokenStream>("extern crate metamodel_macros;".parse().unwrap());
+    //result.extend::<TokenStream>("use metamodel_macros::codegen::{generate_codex_for_meta_model};".parse().unwrap());
+    result.extend::<TokenStream>("metamodel_macros::eval!(metamodel_macros::codegen::generate_code_for_meta_model(model).into()).into()".parse().unwrap());
+
+    println!("📝 generating code...");
+    println!("🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀 macro completed.");
+    result.into()
+}
+
+/*
+
+// these proc_macros cause the failure (the ignore macro called from the this_fails macro)
+// this code is in root of a crate named metamodel_macros
+
+#[proc_macro]
+pub fn ignore(input: TokenStream) -> TokenStream {
+    let mut result : TokenStream = TokenStream::new();
+    result.into()
+}
+
+#[proc_macro]
+pub fn this_fails(input: TokenStream) -> TokenStream {
+    let mut result : TokenStream = TokenStream::new();
+    result.extend::<TokenStream>("metamodel_macros::ignore!(42).into()".parse().unwrap());
+    result.into()
+}
+
+*/
