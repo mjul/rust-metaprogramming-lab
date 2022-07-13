@@ -165,17 +165,17 @@ mod tests {
             // If this compiles, we the struct has been generated
             let actual = Baz {
                 id: 1,
-                birthday: String::from("1970-01-01"),
+                birthday: time::macros::date!(1970-01-01),
             };
 
             assert_eq!(1, actual.id);
-            assert_eq!("1970-01-01", actual.birthday);
+            assert_eq!(time::macros::date!(1970-01-01), actual.birthday);
 
             // If this compiles, we the new constructor been generated
-            let actual = Baz::new(1, String::from("1970-01-01"));
+            let actual = Baz::new(1, time::macros::date!(1970-01-01));
 
             assert_eq!(1, actual.id);
-            assert_eq!("1970-01-01", actual.birthday);
+            assert_eq!(time::macros::date!(1970-01-01), actual.birthday);
         }
 
         #[test]
@@ -233,20 +233,20 @@ mod tests {
             let actual = AllFieldTypes {
                 id: 1,
                 name: String::from("Unichs Taim"),
-                birthday: String::from("1970-01-01"),
+                birthday: time::macros::date!(1970-01-01),
             };
 
             assert_eq!(1, actual.id);
             assert_eq!("Unichs Taim", actual.name);
-            assert_eq!("1970-01-01", actual.birthday);
+            assert_eq!(time::macros::date!(1970-01-01), actual.birthday);
 
             // If this compiles, the new constructor been generated
             let actual =
-                AllFieldTypes::new(1, String::from("Unichs Taim"), String::from("1970-01-01"));
+                AllFieldTypes::new(1, String::from("Unichs Taim"), time::macros::date!(1970-01-01));
 
             assert_eq!(1, actual.id);
             assert_eq!("Unichs Taim", actual.name);
-            assert_eq!("1970-01-01", actual.birthday);
+            assert_eq!(time::macros::date!(1970-01-01), actual.birthday);
         }
     }
 
@@ -323,7 +323,7 @@ mod tests {
                             "documentation",
                             [
                                 ("label", "Full Name"),
-                                ("description", "The full name of the person")
+                                ("description", "The full name of the person.")
                             ]
                         ),
                         ("type", "String")
@@ -344,20 +344,30 @@ mod tests {
         ));
 
         #[test]
-        fn must_emit_record_with_displayhable_trait() {
-            let datum = Birth::new(1, String::from("Unichs Taim"), String::from("1970-01-01"));
+        fn must_emit_record_with_displayable_trait() {
+            let id = 1;
+            let name = "Unichs Taim";
+            let bday = time::macros::date!(1970-01-01);
+
+            let datum = Birth::new(id, String::from(name), bday);
 
             // if this compiles the trait implementation has been generated
             let actual: metamodel::Displayable = datum.into();
-
-            let metamodel::Name::Literal(actual_name) = actual.name;
-            assert_eq!("Birth", actual_name);
 
             let metamodel::Documentation { label, description } = actual.documentation;
             assert_eq!("Birth Information", label);
             assert_eq!("This holds information about a birth.", description);
 
-            // TODO: test field values
+            assert_eq!(3, actual.values.len());
+
+            let expected_id = (metamodel::DisplayableValue::Id(id), Documentation::new("ID", "The unique entity ID."));
+            assert_eq!(expected_id, actual.values[0]);
+
+            let expected_name= (metamodel::DisplayableValue::String(String::from(name)), Documentation::new("Full Name", "The full name of the person."));
+            assert_eq!(expected_name, actual.values[1]);
+
+            let expected_bday = (metamodel::DisplayableValue::LocalDate(bday), Documentation::new("Birthday", "The birthday itself."));
+            assert_eq!(expected_bday, actual.values[2]);
         }
 
     }

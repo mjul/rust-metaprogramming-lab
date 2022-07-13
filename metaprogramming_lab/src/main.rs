@@ -2,6 +2,7 @@ extern crate metamodel;
 extern crate metamodel_macros;
 
 use metamodel::{Documentation, Name};
+use time::Date;
 
 use fltk::{app, prelude::*, window::Window, group::{Group,Flex, Pack, PackType}, frame::Frame, button::Button, enums::{Align, Font, LabelType}, output::Output, text::TextDisplay};
 
@@ -58,7 +59,7 @@ metamodel_macros::generate_model_from_tuple!((
 
 fn main() {
 
-    let datum = Birth::new(1, String::from("Haskell Curry"), String::from("1900-09-12"));
+    let datum = Birth::new(1, String::from("Haskell Curry"), time::macros::date!(1900-09-12));
     let disp : metamodel::Displayable = datum.into();
 
     let app = app::App::default();
@@ -77,7 +78,7 @@ fn main() {
         let mut row_label = Frame::default().with_size(100, 30).with_label(&doc.label);
         let v = match &val {
                     metamodel::DisplayableValue::String(s) => s.clone(),
-                    metamodel::DisplayableValue::LocalDate(s) => s.clone(),
+                    metamodel::DisplayableValue::LocalDate(s) => s.to_string(),
                     metamodel::DisplayableValue::Id(n) => n.to_string(),
         };
         let mut row_value = Output::default().with_size(300, 30).set_value(v.as_str());

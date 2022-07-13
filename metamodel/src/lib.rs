@@ -17,6 +17,7 @@ pub enum Name {
 
 /// Documentation
 #[derive(Debug)]
+#[derive(Eq, PartialEq)]
 pub struct Documentation {
     pub label: String,
     pub description: String,
@@ -69,12 +70,43 @@ pub enum Expr {
 
 /// A displayable value
 #[derive(Debug)]
+#[derive(Eq, PartialEq)]
 pub enum DisplayableValue {
     String(String),
-    LocalDate(String),
+    LocalDate(time::Date),
     Id(u64),
 }
 
+/// Get a string representation of a Displayable Value for displaying.
+impl std::fmt::Display for DisplayableValue {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            DisplayableValue::String(s) => write!(f, "{}", s),
+            DisplayableValue::LocalDate(d) => write!(f, "{}-{:02}-{:02}", d.year(), d.month() as i32, d.day() ),
+            DisplayableValue::Id(x) => write!(f, "{}", x),
+        }
+    }
+}
+
+
+#[cfg(test)]
+mod tests {
+    mod displayable_tests {
+        use super::super::*;
+
+        #[test]
+        fn displayable_value_implements_fmt_display_trait() {
+            let s = DisplayableValue::String(String::from("foo"));
+            assert_eq!("foo", format!("{s}"));
+
+            let d = DisplayableValue::LocalDate(time::macros::date!(2022-07-13));
+            assert_eq!("2022-07-13", format!("{d}"));
+
+            let i = DisplayableValue::Id(42);
+            assert_eq!("42", format!("{i}"));
+        }
+    }
+}
 
 // A displayable record
 #[derive(Debug)]

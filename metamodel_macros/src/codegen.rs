@@ -27,7 +27,7 @@ pub fn generate_code_for_meta_model(ast: metamodel::Expr) -> TokenStream {
                             let field_type = match &fd.field_type {
                                 // pick the corresponding Rust data types
                                 metamodel::Type::Primitive(metamodel::PrimitiveType::Id) => "u64",
-                                metamodel::Type::Primitive(metamodel::PrimitiveType::LocalDate) => "String",
+                                metamodel::Type::Primitive(metamodel::PrimitiveType::LocalDate) => "time::Date",
                                 metamodel::Type::Primitive(metamodel::PrimitiveType::String) => "String",
                             };
                             let field_type_path = syn::Type::Path(syn::TypePath {
@@ -120,7 +120,7 @@ pub fn generate_code_for_meta_model(ast: metamodel::Expr) -> TokenStream {
 
                         let disp_val = match &fd.field_type {
                             metamodel::Type::Primitive(metamodel::PrimitiveType::Id) => quote!(metamodel::DisplayableValue::Id(#field_ref)),
-                            metamodel::Type::Primitive(metamodel::PrimitiveType::LocalDate) => quote!(metamodel::DisplayableValue::LocalDate(String::from(#field_ref))),
+                            metamodel::Type::Primitive(metamodel::PrimitiveType::LocalDate) => quote!(metamodel::DisplayableValue::LocalDate(#field_ref)),
                             metamodel::Type::Primitive(metamodel::PrimitiveType::String) => quote!(metamodel::DisplayableValue::String(String::from(#field_ref))),
                         };
                         quote!((#disp_val, metamodel::Documentation::new(#doc_label, #doc_desc)))

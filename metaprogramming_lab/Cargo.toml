@@ -10,3 +10,4 @@ metamodel = { version = "0.1.0", path = "../metamodel" }
 metamodel_macros = { version = "0.1.0", path = "../metamodel_macros" }
 
 fltk = "^1.2"
+time = {version="0.3.11", features = ["formatting", "macros"]} 

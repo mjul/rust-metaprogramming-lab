@@ -8,3 +8,4 @@ edition = "2021"
 [dependencies]
 metamodel = { version = "0.1.0", path = "../metamodel" }
 metamodel_macros = { version = "0.1.0", path = "../metamodel_macros" }
+time = {version="0.3.11", features = ["formatting", "macros"]} 
