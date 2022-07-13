@@ -111,7 +111,7 @@ pub fn generate_model_from_tuple(input: TokenStream) -> TokenStream {
     let ast = tuple_lang::parse_tuple_expression_to_metamodel(input);
     println!("📝 generating code...");
     let result = match ast {
-        Result::Ok(r) => codegen::generate_code_for_meta_model(r),
+        Ok(r) => codegen::generate_code_for_meta_model(r),
         Err(e) => e.to_compile_error().into(),
     };
     println!("🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀 macro completed.");
