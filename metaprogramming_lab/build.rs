@@ -10,8 +10,9 @@ fn main() {
         "pub fn message() -> &'static str {
             \"Hello, World!\"
         }
-        "
-    ).unwrap();
-    // when build.rs (this file) changes, re-run the 
+        ",
+    )
+    .unwrap();
+    // when build.rs (this file) changes, re-run the
     println!("cargo:rerun-if-changed=build.rs");
 }

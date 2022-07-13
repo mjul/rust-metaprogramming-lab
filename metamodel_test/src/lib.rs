@@ -1,17 +1,11 @@
 extern crate metamodel;
 extern crate metamodel_macros;
 
-use metamodel::{Documentation, Expr, FieldDeclaration, Name, RecordDeclaration};
-use metamodel_macros::{
-    generate_data_structures, generate_model_from_expression_stream, generate_model_from_tuple,
-};
-
 #[cfg(test)]
 mod tests {
     mod generate_data_structures_tests {
-        use metamodel::FieldDeclaration;
-
         use super::super::*;
+        use metamodel::{Documentation, Expr, FieldDeclaration, Name, RecordDeclaration};
 
         #[test]
         #[ignore]
@@ -25,7 +19,7 @@ mod tests {
                 ),
                 no_fields,
             ));
-            generate_data_structures!(foo_model);
+            metamodel_macros::generate_data_structures!(foo_model);
 
             /*generate_data_structures!(Expr::RecordDeclarationExpr(
             Name::Literal(String::from("Foo")),
@@ -43,10 +37,11 @@ mod tests {
 
     mod generate_model_from_tuple_tests {
         use super::super::*;
+        use metamodel::Documentation;
 
         #[test]
         fn must_emit_data_structure_for_record_declaration_with_no_fields() {
-            generate_model_from_tuple!((
+            metamodel_macros::generate_model_from_tuple!((
                 "record",
                 [
                     ("name", "Foo"),
@@ -75,7 +70,7 @@ mod tests {
 
         #[test]
         fn must_emit_data_structure_for_record_declaration_with_one_field() {
-            generate_model_from_tuple!((
+            metamodel_macros::generate_model_from_tuple!((
                 "record",
                 [
                     ("name", "Bar"),
@@ -118,7 +113,7 @@ mod tests {
 
         #[test]
         fn must_emit_data_structure_for_record_declaration_with_two_fields() {
-            generate_model_from_tuple!((
+            metamodel_macros::generate_model_from_tuple!((
                 "record",
                 [
                     ("name", "Baz"),
@@ -165,22 +160,22 @@ mod tests {
             // If this compiles, we the struct has been generated
             let actual = Baz {
                 id: 1,
-                birthday: time::macros::date!(1970-01-01),
+                birthday: time::macros::date!(1970 - 01 - 01),
             };
 
             assert_eq!(1, actual.id);
-            assert_eq!(time::macros::date!(1970-01-01), actual.birthday);
+            assert_eq!(time::macros::date!(1970 - 01 - 01), actual.birthday);
 
             // If this compiles, we the new constructor been generated
-            let actual = Baz::new(1, time::macros::date!(1970-01-01));
+            let actual = Baz::new(1, time::macros::date!(1970 - 01 - 01));
 
             assert_eq!(1, actual.id);
-            assert_eq!(time::macros::date!(1970-01-01), actual.birthday);
+            assert_eq!(time::macros::date!(1970 - 01 - 01), actual.birthday);
         }
 
         #[test]
         fn must_emit_data_structure_for_record_declaration_with_all_field_types() {
-            generate_model_from_tuple!((
+            metamodel_macros::generate_model_from_tuple!((
                 "record",
                 [
                     ("name", "AllFieldTypes"),
@@ -233,27 +228,29 @@ mod tests {
             let actual = AllFieldTypes {
                 id: 1,
                 name: String::from("Unichs Taim"),
-                birthday: time::macros::date!(1970-01-01),
+                birthday: time::macros::date!(1970 - 01 - 01),
             };
 
             assert_eq!(1, actual.id);
             assert_eq!("Unichs Taim", actual.name);
-            assert_eq!(time::macros::date!(1970-01-01), actual.birthday);
+            assert_eq!(time::macros::date!(1970 - 01 - 01), actual.birthday);
 
             // If this compiles, the new constructor been generated
-            let actual =
-                AllFieldTypes::new(1, String::from("Unichs Taim"), time::macros::date!(1970-01-01));
+            let actual = AllFieldTypes::new(
+                1,
+                String::from("Unichs Taim"),
+                time::macros::date!(1970 - 01 - 01),
+            );
 
             assert_eq!(1, actual.id);
             assert_eq!("Unichs Taim", actual.name);
-            assert_eq!(time::macros::date!(1970-01-01), actual.birthday);
+            assert_eq!(time::macros::date!(1970 - 01 - 01), actual.birthday);
         }
     }
 
     mod generate_model_from_expression_stream_tests {
-        use metamodel::FieldDeclaration;
-
-        use super::super::*;
+        //use metamodel::FieldDeclaration;
+        //use super::super::*;
 
         #[test]
         #[ignore]
@@ -291,10 +288,11 @@ mod tests {
 
     mod gui_code_generation_tests {
         use super::super::*;
+        use metamodel::Documentation;
 
         // Generate a model in this scope from the macro that works
         // All macros use the same code-generation back-end, so it is not important which one.
-        generate_model_from_tuple!((
+        metamodel_macros::generate_model_from_tuple!((
             "record",
             [
                 ("name", "Birth"),
@@ -347,28 +345,36 @@ mod tests {
         fn must_emit_record_with_displayable_trait() {
             let id = 1;
             let name = "Unichs Taim";
-            let bday = time::macros::date!(1970-01-01);
+            let bday = time::macros::date!(1970 - 01 - 01);
 
             let datum = Birth::new(id, String::from(name), bday);
 
             // if this compiles the trait implementation has been generated
             let actual: metamodel::Displayable = datum.into();
 
-            let metamodel::Documentation { label, description } = actual.documentation;
+            let Documentation { label, description } = actual.documentation;
             assert_eq!("Birth Information", label);
             assert_eq!("This holds information about a birth.", description);
 
             assert_eq!(3, actual.values.len());
 
-            let expected_id = (metamodel::DisplayableValue::Id(id), Documentation::new("ID", "The unique entity ID."));
+            let expected_id = (
+                metamodel::DisplayableValue::Id(id),
+                Documentation::new("ID", "The unique entity ID."),
+            );
             assert_eq!(expected_id, actual.values[0]);
 
-            let expected_name= (metamodel::DisplayableValue::String(String::from(name)), Documentation::new("Full Name", "The full name of the person."));
+            let expected_name = (
+                metamodel::DisplayableValue::String(String::from(name)),
+                Documentation::new("Full Name", "The full name of the person."),
+            );
             assert_eq!(expected_name, actual.values[1]);
 
-            let expected_bday = (metamodel::DisplayableValue::LocalDate(bday), Documentation::new("Birthday", "The birthday itself."));
+            let expected_bday = (
+                metamodel::DisplayableValue::LocalDate(bday),
+                Documentation::new("Birthday", "The birthday itself."),
+            );
             assert_eq!(expected_bday, actual.values[2]);
         }
-
     }
 }

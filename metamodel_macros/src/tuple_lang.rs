@@ -153,8 +153,8 @@ fn parse_array_with_name_and_documentation_tuple(
     match expr {
         syn::Expr::Array(a) => match a {
             syn::ExprArray {
-                attrs,
-                bracket_token,
+                attrs: _,
+                bracket_token: _,
                 elems,
             } => {
                 println!("🚀🚀🚀 parsing an ARRAY with name and documentation!");
@@ -414,7 +414,6 @@ pub fn parse_tuple_expression_to_metamodel(input: TokenStream) -> Result<metamod
     };
     ast
 }
-
 
 #[cfg(test)]
 mod playground_tests {

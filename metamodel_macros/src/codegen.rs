@@ -27,8 +27,12 @@ pub fn generate_code_for_meta_model(ast: metamodel::Expr) -> TokenStream {
                             let field_type = match &fd.field_type {
                                 // pick the corresponding Rust data types
                                 metamodel::Type::Primitive(metamodel::PrimitiveType::Id) => "u64",
-                                metamodel::Type::Primitive(metamodel::PrimitiveType::LocalDate) => "time::Date",
-                                metamodel::Type::Primitive(metamodel::PrimitiveType::String) => "String",
+                                metamodel::Type::Primitive(metamodel::PrimitiveType::LocalDate) => {
+                                    "time::Date"
+                                }
+                                metamodel::Type::Primitive(metamodel::PrimitiveType::String) => {
+                                    "String"
+                                }
                             };
                             let field_type_path = syn::Type::Path(syn::TypePath {
                                 qself: None,
@@ -149,22 +153,19 @@ pub fn generate_code_for_meta_model(ast: metamodel::Expr) -> TokenStream {
     };
 
     println!("🚀🚀🚀 code: {}", code.to_string());
-    
+
     code.into()
 }
-
 
 #[cfg(test)]
 mod playground_tests {
     #[test]
     fn new() {
+        /*
         struct Foo {
             a: i32,
-        }
-
+        }*/
         let ast: syn::ItemFn = syn::parse_str("pub fn Foo(x: i32) -> Foo { Foo { a:x } }").unwrap();
         dbg!(ast);
     }
 }
-
-

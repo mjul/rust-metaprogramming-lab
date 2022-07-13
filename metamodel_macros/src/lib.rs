@@ -2,10 +2,8 @@ extern crate metamodel;
 
 use proc_macro::{self, TokenStream};
 use quote::quote;
-use std::collections::HashMap;
-use std::fmt;
 use syn::parse::Parse;
-use syn::{parse_macro_input, Result, Token};
+use syn::{Result, Token};
 
 mod codegen;
 mod tuple_lang;
@@ -14,7 +12,7 @@ mod tuple_lang;
 struct GenStructsInputEnum {}
 
 impl Parse for GenStructsInputEnum {
-    fn parse(input: syn::parse::ParseStream) -> Result<Self> {
+    fn parse(_input: syn::parse::ParseStream) -> Result<Self> {
         todo!()
     }
 }
@@ -41,16 +39,20 @@ pub fn generate_data_structures(input: TokenStream) -> TokenStream {
     let item: syn::Expr = syn::parse(input).expect("failed to parse input");
     println!("🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀 running macro: generate_data_structures...");
 
-    let model_identifier = match item {
+    let _model_identifier = match item {
         syn::Expr::Call(c) => match c {
             syn::ExprCall {
-                attrs,
+                attrs: _,
                 func,
-                args,
-                paren_token,
+                args: _,
+                paren_token: _,
             } => match *func {
                 syn::Expr::Path(p) => match p {
-                    syn::ExprPath { attrs, qself, path } => {
+                    syn::ExprPath {
+                        attrs: _,
+                        qself: _,
+                        path: _,
+                    } => {
                         println!("Call -> ExprCall -> Path -> ExprPath");
                         None
                     }
@@ -92,12 +94,13 @@ pub fn generate_data_structures(input: TokenStream) -> TokenStream {
     println!("🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀 macro input parsing completed...");
 
     // TODO: generate some real code, this is just a placeholder
-    quote! {
+    quote!(
     struct Foo { id: usize};
     impl Foo { pub fn new(id:usize) -> Self {
         Self { id }
     }
-    } }
+    }
+    )
     .into()
 }
 

@@ -16,8 +16,7 @@ pub enum Name {
 }
 
 /// Documentation
-#[derive(Debug)]
-#[derive(Eq, PartialEq)]
+#[derive(Debug, Eq, PartialEq)]
 pub struct Documentation {
     pub label: String,
     pub description: String,
@@ -40,7 +39,13 @@ pub struct FieldDeclaration {
 }
 
 impl FieldDeclaration {
-    pub fn new(name: Name, documentation: Documentation, field_type: Type) -> Self { Self { name, documentation, field_type } }
+    pub fn new(name: Name, documentation: Documentation, field_type: Type) -> Self {
+        Self {
+            name,
+            documentation,
+            field_type,
+        }
+    }
 }
 
 #[derive(Debug)]
@@ -54,11 +59,13 @@ impl RecordDeclaration {
     pub fn new(name: Name, documentation: Documentation, fields: Vec<FieldDeclaration>) -> Self {
         // TODO: protect against unique duplicate field names
         // TODO: validate field names
-        Self { name, documentation, fields }
+        Self {
+            name,
+            documentation,
+            fields,
+        }
     }
 }
-
-
 
 #[derive(Debug)]
 pub enum Expr {
@@ -66,11 +73,8 @@ pub enum Expr {
     RecordDeclarationExpr(RecordDeclaration),
 }
 
-
-
 /// A displayable value
-#[derive(Debug)]
-#[derive(Eq, PartialEq)]
+#[derive(Debug, Eq, PartialEq)]
 pub enum DisplayableValue {
     String(String),
     LocalDate(time::Date),
@@ -82,12 +86,13 @@ impl std::fmt::Display for DisplayableValue {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
             DisplayableValue::String(s) => write!(f, "{}", s),
-            DisplayableValue::LocalDate(d) => write!(f, "{}-{:02}-{:02}", d.year(), d.month() as i32, d.day() ),
+            DisplayableValue::LocalDate(d) => {
+                write!(f, "{}-{:02}-{:02}", d.year(), d.month() as i32, d.day())
+            }
             DisplayableValue::Id(x) => write!(f, "{}", x),
         }
     }
 }
-
 
 #[cfg(test)]
 mod tests {
@@ -99,7 +104,7 @@ mod tests {
             let s = DisplayableValue::String(String::from("foo"));
             assert_eq!("foo", format!("{s}"));
 
-            let d = DisplayableValue::LocalDate(time::macros::date!(2022-07-13));
+            let d = DisplayableValue::LocalDate(time::macros::date!(2022 - 07 - 13));
             assert_eq!("2022-07-13", format!("{d}"));
 
             let i = DisplayableValue::Id(42);
@@ -112,6 +117,5 @@ mod tests {
 #[derive(Debug)]
 pub struct Displayable {
     pub documentation: Documentation,
-    pub values : Vec<(DisplayableValue, Documentation)>
+    pub values: Vec<(DisplayableValue, Documentation)>,
 }
-
