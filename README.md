@@ -25,6 +25,9 @@ This crate contains tests for the meta-model.
 ### `metaprogramming_lab`
 This crate contains examples of how to use the meta-model.
 
+It declares a meta-model, uses the code generator to emit it and
+then provides a GUI (using FLTK) that automatically displays records defined and documented in the meta-model.
+
 
 ## Syn Library
 The Syn library parses Rust TokenStreams into an AST.
@@ -45,6 +48,11 @@ You can use the `Into` trait to turn an error into a `TokenStream` to return the
         Err(e) => e.to_compile_error().into(),
     }
 ```
+
+## Quote Library
+The Quote library is the conceptual dual of Syn. It provides a mechanism to quote code with a templating mechanism to combine or
+merge code snippets and computed code expressions, and output the resulting token stream as a macro evaluation result.
+
 
 ## Approaches
 
