@@ -342,15 +342,60 @@ mod tests {
         ));
 
         #[test]
-        fn must_emit_record_with_displayable_trait() {
+        fn must_emit_record_with_into_trait_to_displayable() {
             let id = 1;
             let name = "Unichs Taim";
             let bday = time::macros::date!(1970 - 01 - 01);
 
             let datum = Birth::new(id, String::from(name), bday);
 
-            // if this compiles the trait implementation has been generated
+            // if this compiles the Into trait implementation has been generated
             let actual: metamodel::Displayable = datum.into();
+
+            assert_correct_conversion_to_displayable(id, name, &bday, actual);
+        }
+
+        fn assert_correct_conversion_to_displayable(
+            expected_id: u64,
+            expected_name: &str,
+            expected_bday: &time::Date,
+            actual: metamodel::Displayable,
+        ) {
+            let Documentation { label, description } = actual.documentation;
+            assert_eq!("Birth Information", label);
+            assert_eq!("This holds information about a birth.", description);
+
+            assert_eq!(3, actual.values.len());
+
+            let expected_id = (
+                metamodel::DisplayableValue::Id(expected_id),
+                Documentation::new("ID", "The unique entity ID."),
+            );
+            assert_eq!(expected_id, actual.values[0]);
+
+            let expected_name = (
+                metamodel::DisplayableValue::String(String::from(expected_name)),
+                Documentation::new("Full Name", "The full name of the person."),
+            );
+            assert_eq!(expected_name, actual.values[1]);
+
+            let expected_bday = (
+                metamodel::DisplayableValue::LocalDate(*expected_bday),
+                Documentation::new("Birthday", "The birthday itself."),
+            );
+            assert_eq!(expected_bday, actual.values[2]);
+        }
+
+        #[test]
+        fn must_emit_record_with_from_trait_to_displayable() {
+            let id = 1;
+            let name = "Unichs Taim";
+            let bday = time::macros::date!(1970 - 01 - 01);
+
+            let datum = Birth::new(id, String::from(name), bday);
+
+            // if this compiles the Fromm trait implementation has been generated
+            let actual = metamodel::Displayable::from(datum);
 
             let Documentation { label, description } = actual.documentation;
             assert_eq!("Birth Information", label);

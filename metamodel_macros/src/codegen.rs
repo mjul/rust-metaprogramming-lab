@@ -120,7 +120,7 @@ pub fn generate_code_for_meta_model(ast: metamodel::Expr) -> TokenStream {
                             metamodel::Name::Literal(x) => x
                         };
                         let field_ident : syn::Ident = syn::parse_str(field_name.as_str()).unwrap();
-                        let field_ref = quote!(self.#field_ident);
+                        let field_ref = quote!(item.#field_ident);
 
                         let disp_val = match &fd.field_type {
                             metamodel::Type::Primitive(metamodel::PrimitiveType::Id) => quote!(metamodel::DisplayableValue::Id(#field_ref)),
@@ -137,8 +137,8 @@ pub fn generate_code_for_meta_model(ast: metamodel::Expr) -> TokenStream {
                                 pub fn new(#new_inputs) -> Self { Self { #new_struct_fields } }
                             }
 
-                            impl Into<metamodel::Displayable> for #struct_ident {
-                                fn into(self) -> metamodel::Displayable {
+                            impl std::convert::From<#struct_ident> for metamodel::Displayable {
+                                fn from(item : #struct_ident) -> metamodel::Displayable {
                                     metamodel::Displayable {
                                         documentation: Documentation::new(#record_doc_label, #record_doc_description),
                                         values: vec![ #(#record_values),* ],
